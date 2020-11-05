@@ -1,0 +1,75 @@
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+with open('./tmp/nitrousProperties.npy', 'rb') as f:
+  temperatures = np.load(f) - 273.15
+  liquidMolarMass = np.load(f)
+  gaseousMolarMass = np.load(f)
+  liquidSpecificHeat = np.load(f)
+  gaseousSpecificHeat = np.load(f)
+  liquidSaturationPressure = np.load(f)
+  gaseousSaturationPressure = np.load(f)
+  liquidSpecificEnthalpy = np.load(f)
+  gaseousSpecificEnthalpy = np.load(f)
+  liquidSpecificInternalEnergy = np.load(f)
+  gaseousSpecificInternalEnergy = np.load(f)
+  liquidDensity = np.load(f)
+  gaseousDensity = np.load(f)
+
+
+plt.subplot(2, 3, 1)
+plt.plot(temperatures, liquidSaturationPressure / 1e5)
+plt.plot(temperatures, gaseousSaturationPressure / 1e5)
+plt.title("Saturation Pressure")
+plt.xlabel("Temperature [°C]")
+plt.ylabel("Saturation Pressure [bar]")
+plt.legend(('Liquid', 'Gas'))
+plt.grid()
+
+plt.subplot(2, 3, 2)
+plt.plot(temperatures, liquidSpecificEnthalpy / 1e6)
+plt.plot(temperatures, gaseousSpecificEnthalpy / 1e6)
+plt.title("Specific Enthalpy")
+plt.xlabel("Temperature [°C]")
+plt.ylabel("Specific Enthalpy [MJ/kg]")
+plt.legend(('Liquid', 'Gas'))
+plt.grid()
+
+plt.subplot(2, 3, 3)
+plt.plot(temperatures, liquidSpecificInternalEnergy / 1e6)
+plt.plot(temperatures, gaseousSpecificInternalEnergy / 1e6)
+plt.title("Specific Internal Energy")
+plt.xlabel("Temperature [°C]")
+plt.ylabel("Specific Enthalpy [MJ/kg]")
+plt.legend(('Liquid', 'Gas'))
+plt.grid()
+
+plt.subplot(2, 3, 4)
+plt.plot(temperatures, liquidDensity)
+plt.plot(temperatures, gaseousDensity)
+plt.title("Density")
+plt.xlabel("Temperature [°C]")
+plt.ylabel("Density [kg/m3]")
+plt.legend(('Liquid', 'Gas'))
+plt.grid()
+
+plt.subplot(2, 3, 5)
+plt.plot(temperatures, liquidMolarMass)
+plt.plot(temperatures, gaseousMolarMass)
+plt.title("Molar Mass")
+plt.xlabel("Temperature [°C]")
+plt.ylabel("Molar Mass [g/mol]")
+plt.legend(('Liquid', 'Gas'))
+plt.grid()
+
+plt.subplot(2, 3, 6)
+plt.plot(temperatures, liquidSpecificHeat)
+plt.plot(temperatures, gaseousSpecificHeat)
+plt.title("Specific Heat")
+plt.xlabel("Temperature [°C]")
+plt.ylabel("Specific Heat [J/mol/K]")
+plt.legend(('Liquid', 'Gas'))
+plt.grid()
+
+plt.show()
