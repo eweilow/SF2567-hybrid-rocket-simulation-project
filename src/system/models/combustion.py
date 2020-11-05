@@ -2,8 +2,6 @@ import math
 from models.base import Model
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
-from utils.cea import NasaCEA
-
 atmosphericPressure = 101300
 
 fuelDensity = 900
@@ -21,7 +19,9 @@ class CombustionModel(Model):
   def derivedVariablesDependsOn(self, models):
     return [models["injector"], models["tank"]]
     
-  cea = NasaCEA()
+  def __init__(self):
+    from utils.cea import NasaCEA
+    self.cea = NasaCEA()
 
   states_pressure = 0
   states_portRadius = 1
@@ -80,8 +80,6 @@ class CombustionModel(Model):
     injectorMassFlow = models["injector"]["derived"][InjectorModel.derived_massFlow]
     oxidizerFlux = injectorMassFlow / portArea
 
-    oxidizerDensity = models["tank"]["derived"][TankModel.derived_outletDensity]
-
     dPortRadius_dt = aConstant * math.pow(oxidizerFlux, nConstant)
     fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * portLength * fuelDensity
 
@@ -91,18 +89,10 @@ class CombustionModel(Model):
     exhaustArea = pow(models["nozzle"]["state"][NozzleModel.states_exhaustRadius], 2) * math.pi
 
     areaRatio = exhaustArea / throatArea
+    Isp, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure = self.cea.getPerformanceParameters(state[self.states_pressure], atmosphericPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
     
-    computed = self.cea.compute(areaRatio, 0.02, ofRatio, state[self.states_pressure], 293, 273, oxidizerDensity)
-
-    temperature = computed["chamber"]["temperature"]
-    gamma = computed["throat"]["gamma"]
-    CpT = temperature * computed["chamber"]["Cp"]
-    density = temperature * computed["chamber"]["density"]
-    cStar = computed["throat"]["cStar"] * combustionEfficiency
-    thrustCoefficient = computed["exhaust"]["CF"]
-    exhaustPressure = computed["exhaust"]["pressure"]
-    molecularMass = computed["chamber"]["M"]
-
+    CpT = temperature * Cp
+    cStar = cStar * combustionEfficiency
     startupTransient = combustionEfficiencyTransient(t)
     cStar = cStar * startupTransient
 

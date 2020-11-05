@@ -122,7 +122,8 @@ no_oxidizer_energy.terminal = True
 
 def no_chamber_pressure(t, y): 
   models["combustion"]["state"] = np.dot(combustionStateMatrixInverse, y)
-  return models["combustion"]["state"][CombustionModel.states_pressure] - 2 * constants.Pressure.bar
+  return models["combustion"]["state"][CombustionModel.states_pressure] - 200000
+
 no_chamber_pressure.terminal = True
 no_chamber_pressure.direction = -1
 
@@ -139,8 +140,6 @@ sol = solve_ivp(
   t_eval=np.linspace(0, T, 250), 
   dense_output=False, 
   events=(no_oxidizer_mass, no_oxidizer_energy, no_chamber_pressure),
-  rtol=1e-2,
-  atol=1e-2
 )
 sol.t = sol.t[1:]
 sol.y = sol.y[:,1:]
@@ -185,173 +184,15 @@ models["injector"]["derived"] = injectorDerivedVariables
 models["combustion"]["derived"] = combustionDerivedVariables
 models["nozzle"]["derived"] = nozzleDerivedVariables
 
-index = 1
-width = 5
-height = 4
+with open('/data/simulation.npy', 'wb') as f:
+  np.save(f, sol.t)
+  
+  np.save(f, models["tank"]["state"])
+  np.save(f, models["tank"]["derived"])
+  np.save(f, models["injector"]["state"])
+  np.save(f, models["injector"]["derived"])
+  np.save(f, models["combustion"]["state"])
+  np.save(f, models["combustion"]["derived"])
+  np.save(f, models["nozzle"]["state"])
+  np.save(f, models["nozzle"]["derived"])
 
-
-
-plt.plot(models["combustion"]["derived"][CombustionModel.derived_ofRatio], models["nozzle"]["derived"][NozzleModel.derived_specificImpulse])
-plt.xlabel("Oxidizer-Fuel Ratio")
-plt.ylabel("Specific Impulse [s]")
-plt.grid()
-plt.show()
-
-def nextSubplot():
-  global index
-  plt.subplot(height, width, index)
-  plt.grid()
-  index = (index) % (width * height) + 1
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["state"][TankModel.states_oxidizerMass], '--')
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_liquidMass], '-')
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_gasMass], '-')
-plt.legend(("Total", "Liquid", "Gas"))
-plt.xlabel("Time (s)")
-plt.ylabel("Oxidizer mass (kg)")
-plt.title("Oxidizer")
-
-# nextSubplot()
-# plt.plot(sol.t, models["combustion"]["state"][CombustionModel.states_burntFuel], '-')
-# plt.xlabel("Time (s)")
-# plt.ylabel("Burnt mass (kg)")
-# plt.title("Fuel")
-
-nextSubplot()
-plt.plot(sol.t, models["injector"]["derived"][InjectorModel.derived_massFlow], '-')
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_fuelFlow], '-')
-plt.plot(sol.t, models["nozzle"]["derived"][NozzleModel.derived_massFlow], '--')
-plt.legend(("Oxidizer", "Fuel", "Nozzle"))
-plt.xlabel("Time (s)")
-plt.ylabel("Mass flow (kg/s)")
-plt.title("Propellant flow")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_massFlowTop]*1e3, '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Mass flow (g/s)")
-plt.title("Passive vent")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_pressure] / constants.Pressure.bar, '-')
-plt.plot(sol.t, models["combustion"]["state"][CombustionModel.states_pressure] / constants.Pressure.bar, '-')
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_exhaustPressure] / constants.Pressure.bar, '-')
-plt.legend(("Tank", "Chamber", "Exhaust"))
-plt.xlabel("Time (s)")
-plt.ylabel("Pressure (bar)")
-plt.title("Pressures")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_outletDensity], '-')
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_outletTopDensity], '-')
-plt.legend(("Main outlet", "Passive vent"))
-plt.xlabel("Time (s)")
-plt.ylabel("Density (kg/m^3)")
-plt.title("Tank outlets")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_temperature], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Temperature (K)")
-plt.title("Tank temperature")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_liquidLevel] * 100, '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Liquid level (%)")
-plt.title("Tank liquid level")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_vaporQuality] * 100, '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Vapor quality (%)")
-plt.title("Tank vapor quality")
-
-nextSubplot()
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_liquidDensity], '-')
-plt.plot(sol.t, models["tank"]["derived"][TankModel.derived_gasDensity], '-')
-plt.legend(('Liquid', 'Gas'))
-plt.xlabel("Time (s)")
-plt.ylabel("Density (kg/m^3)")
-plt.title("Oxidizer density")
-
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["state"][CombustionModel.states_portRadius] / constants.Lengths.mm, '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Radius (mm)")
-plt.title("Port radius")
-
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_volume] / constants.Volume.liter, '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Volume (liter)")
-plt.title("Chamber volume")
-
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_temperature], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Temperature (K)")
-plt.title("Adiabatic chamber flame temperature")
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_gamma], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Gamma")
-plt.title("Combustion gamma")
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_CpT], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("CpT")
-plt.title("Combustion CpT")
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_rDot] / constants.Lengths.mm, '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Rate (mm/s)")
-plt.title("Regression rate")
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_ofRatio], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("OF")
-plt.title("Oxidizer-fuel ratio")
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_cStar], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("C*")
-plt.title("Characteristic velocity")
-
-nextSubplot()
-plt.plot(sol.t, models["combustion"]["derived"][CombustionModel.derived_thrustCoefficient], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Coefficient")
-plt.title("Thrust coefficient")
-
-nextSubplot()
-plt.plot(sol.t, models["nozzle"]["derived"][NozzleModel.derived_thrust], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Thrust (N)")
-plt.title("Thrust")
-
-nextSubplot()
-plt.plot(sol.t, models["nozzle"]["derived"][NozzleModel.derived_specificImpulse], '-')
-plt.xlabel("Time (s)")
-plt.ylabel("Specific impulse (s)")
-plt.title("Specific impulse")
-
-plt.tight_layout()
-plt.subplots_adjust(
-  left=0.05,
-  bottom=0.05,
-  top=1-0.05,
-  right=1-0.05,
-  wspace=0.25,
-  hspace=0.35
-)
-plt.show()
