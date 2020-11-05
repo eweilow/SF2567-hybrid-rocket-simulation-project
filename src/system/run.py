@@ -137,9 +137,10 @@ sol = solve_ivp(
   [0, T], 
   initialState, 
   'LSODA', 
-  t_eval=np.linspace(0, T, 250), 
+  t_eval=np.linspace(0, T, 2500), 
   dense_output=False, 
   events=(no_oxidizer_mass, no_oxidizer_energy, no_chamber_pressure),
+  max_step=1e-1
 )
 sol.t = sol.t[1:]
 sol.y = sol.y[:,1:]
