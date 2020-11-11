@@ -4,6 +4,7 @@ from models.tank import TankModel
 from models.injector import InjectorModel
 from models.combustion import CombustionModel
 from models.nozzle import NozzleModel
+from models.passiveVent import PassiveVentModel
 
 from solve.dependencies import recurseModelDependencies
 from solve.models import initializeModel, initializeModelMatrices
@@ -13,6 +14,7 @@ def makeODE():
   models = {
     "tank": initializeModel("tank", TankModel()),
     "injector": initializeModel("injector", InjectorModel()),
+    "passiveVent": initializeModel("passiveVent", PassiveVentModel()),
     "combustion": initializeModel("combustion", CombustionModel()),
     "nozzle": initializeModel("nozzle", NozzleModel()),
   }

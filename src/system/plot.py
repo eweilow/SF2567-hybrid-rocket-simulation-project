@@ -5,6 +5,7 @@ from models.tank import TankModel
 from models.injector import InjectorModel
 from models.combustion import CombustionModel
 from models.nozzle import NozzleModel
+from models.passiveVent import PassiveVentModel
 import utils.constants as constants
 
 
@@ -17,6 +18,10 @@ with open('./tmp/simulation.npy', 'rb') as f:
       "derived": np.load(f),
     },
     "injector": {
+      "state": np.load(f),
+      "derived": np.load(f),
+    },
+    "passiveVent": {
       "state": np.load(f),
       "derived": np.load(f),
     },
@@ -73,7 +78,7 @@ plt.ylabel("Mass flow (kg/s)")
 plt.title("Propellant flow")
 
 nextSubplot()
-plt.plot(t, models["tank"]["derived"][TankModel.derived_massFlowTop]*1e3, '-')
+plt.plot(t, models["passiveVent"]["derived"][PassiveVentModel.derived_massFlow]*1e3, '-')
 plt.xlabel("Time (s)")
 plt.ylabel("Mass flow (g/s)")
 plt.title("Passive vent")

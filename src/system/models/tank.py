@@ -11,7 +11,7 @@ ambientPressure = 101300
 
 class EquilibriumTankModel(Model):
   def derivativesDependsOn(self, models):
-    return [models["injector"]]
+    return [models["injector"], models["passiveVent"]]
 
   def derivedVariablesDependsOn(self, models):
     return []
@@ -53,13 +53,12 @@ class EquilibriumTankModel(Model):
   derived_gasMass = 7
   derived_vaporQuality = 8
   derived_liquidLevel = 9
-  derived_massFlowTop = 10
-  derived_gasDensity = 11
-  derived_liquidDensity = 12
-  derived_gasVolume = 13
-  derived_liquidVolume = 14
-  derived_outletPhase = 15
-  derived_topPhase = 16
+  derived_gasDensity = 10
+  derived_liquidDensity = 11
+  derived_gasVolume = 12
+  derived_liquidVolume = 13
+  derived_outletPhase = 14
+  derived_topPhase = 15
 
   def initializeState(self):
     filledGasDensity = CP.PropsSI('D','T',assumptions.tankFilledTemperature.get(),'Q',1,'N2O')
@@ -80,8 +79,9 @@ class EquilibriumTankModel(Model):
     from models.nozzle import NozzleModel
     from models.injector import InjectorModel
     from models.combustion import CombustionModel
+    from models.passiveVent import PassiveVentModel
 
-    massFlowTop = derived[self.derived_massFlowTop]
+    massFlowTop = models["passiveVent"]["derived"][PassiveVentModel.derived_massFlow]
     massFlowOutlet = models["injector"]["derived"][InjectorModel.derived_massFlow]
 
     hOutlet = derived[self.derived_hOutlet]
@@ -137,19 +137,7 @@ class EquilibriumTankModel(Model):
     hOutlet = CP.PropsSI('H','T',temperature,'Q',outletPhase,'N2O')
     hTop = CP.PropsSI('H','T',temperature,'Q',topPhase,'N2O')
 
-    massFlowTop = computeHEMInjector(
-      assumptions.tankPassiveVentDischargeCoefficient.get(), 
-      1,
-      assumptions.tankPassiveVentDiameter.get(),
-      densityTop, 
-      pressure,
-      ambientPressure,
-      temperature,
-      topPhase,
-      hTop
-    )
-
-    return [pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, massFlowTop, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase]
+    return [pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase]
   
 class TankModel(EquilibriumTankModel):
   def __init__(self):
