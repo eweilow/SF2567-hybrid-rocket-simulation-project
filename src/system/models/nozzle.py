@@ -42,7 +42,8 @@ class NozzleModel(Model):
     throatRadius = state[self.states_throatRadius]
     throatArea = math.pow(throatRadius, 2) * math.pi
 
-    nozzleMassFlow = chamberPressure * throatArea / cStar
+    # err what
+    nozzleMassFlow = (chamberPressure - ambientPressure) * throatArea / cStar
     if nozzleMassFlow < 0:
       nozzleMassFlow = 0
     # print(nozzleMassFlow, chamberTemperature, chamberPressure)
@@ -54,7 +55,7 @@ class NozzleModel(Model):
 
     thrust = cStar * thrustCoefficient * nozzleMassFlow + exhaustThrust
 
-    specificImpulse = thrust / 9.80665 / nozzleMassFlow
+    specificImpulse = cStar * thrustCoefficient / 9.80665
     
     return [nozzleMassFlow, thrust, specificImpulse]
 
