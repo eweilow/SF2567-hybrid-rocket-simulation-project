@@ -59,3 +59,8 @@ nozzleExhaustRadius = Variable(constants.Lengths.mm * 44.777)
 nozzleThroatRadius = Variable(constants.Lengths.mm * 19.466)
 nozzleErosionConstant = Variable(constants.Lengths.mm * 0) # Set to 0 for now
 nozzleErosionStart = Variable(10)
+
+
+launchLatitudeDegrees = Variable(61)
+launchLongitudeDegrees = Variable(14)
+launchSeaLevelAltitude = Variable(10000)

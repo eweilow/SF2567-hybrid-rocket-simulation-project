@@ -1,4 +1,5 @@
 from models.base import Model
+import math
 
 import assumptions
 
@@ -18,4 +19,15 @@ class EnvironmentModel(Model):
     return [0]
 
   def computeDerivedVariables(self, t, state, models):
-    return [assumptions.initialAtmosphericPressure.get() * (1 - t/30)]
+    from rellipsoid import earth
+    from ambiance import Atmosphere
+
+
+    surfaceAltitude = 0
+
+    atmosphere = Atmosphere(surfaceAltitude)
+
+    launchLatitudeRadians = assumptions.launchLatitudeDegrees.get() / 180 * math.pi
+    verticalGravity, northwardGravity = earth.get_analytic_gravity(launchLatitudeRadians, assumptions.launchSeaLevelAltitude.get())
+
+    return [atmosphere.pressure[0]]

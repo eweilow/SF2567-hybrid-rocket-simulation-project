@@ -52,5 +52,10 @@ RUN apt-get install git g++ p7zip libpython-dev -y
 RUN python setup.py install
 
 
+
+RUN pip install ambiance
+RUN pip install rellipsoid
+
+
 # Set the main working directory for the Dockerfile
 WORKDIR /project
