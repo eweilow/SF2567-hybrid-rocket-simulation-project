@@ -36,8 +36,7 @@ class PassiveVentModel(Model):
     tankTemperature = models["tank"]["derived"][TankModel.derived_temperature]
     tankPhase = models["tank"]["derived"][TankModel.derived_topPhase]
     
-    startupTransient = injectorTransientFalloff(t)
-    massFlow = startupTransient * computeHEMInjector(
+    massFlow = computeHEMInjector(
       assumptions.tankPassiveVentDischargeCoefficient.get(), 
       1,
       assumptions.tankPassiveVentDiameter.get(),

@@ -18,4 +18,4 @@ class EnvironmentModel(Model):
     return [0]
 
   def computeDerivedVariables(self, t, state, models):
-    return [assumptions.initialAtmosphericPressure.get()]
+    return [assumptions.initialAtmosphericPressure.get() * (1 - t/30)]

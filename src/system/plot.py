@@ -6,6 +6,7 @@ from models.injector import InjectorModel
 from models.combustion import CombustionModel
 from models.nozzle import NozzleModel
 from models.passiveVent import PassiveVentModel
+from models.environment import EnvironmentModel
 import utils.constants as constants
 
 
@@ -44,11 +45,11 @@ index = 1
 width = 5
 height = 4
 
-plt.plot(models["combustion"]["derived"][CombustionModel.derived_ofRatio], models["nozzle"]["derived"][NozzleModel.derived_specificImpulse])
-plt.xlabel("Oxidizer-Fuel Ratio")
-plt.ylabel("Specific Impulse [s]")
-plt.grid()
-plt.show()
+# plt.plot(models["combustion"]["derived"][CombustionModel.derived_ofRatio], models["nozzle"]["derived"][NozzleModel.derived_specificImpulse])
+# plt.xlabel("Oxidizer-Fuel Ratio")
+# plt.ylabel("Specific Impulse [s]")
+# plt.grid()
+# plt.show()
 
 def nextSubplot():
   global index
@@ -91,7 +92,8 @@ nextSubplot()
 plt.plot(t, models["tank"]["derived"][TankModel.derived_pressure] / constants.Pressure.bar, '-')
 plt.plot(t, models["combustion"]["state"][CombustionModel.states_pressure] / constants.Pressure.bar, '-')
 plt.plot(t, models["combustion"]["derived"][CombustionModel.derived_exhaustPressure] / constants.Pressure.bar, '-')
-plt.legend(("Tank", "Chamber", "Exhaust"))
+plt.plot(t, models["environment"]["derived"][EnvironmentModel.derived_ambientPressure] / constants.Pressure.bar, '-')
+plt.legend(("Tank", "Chamber", "Exhaust", "Ambient"))
 plt.xlabel("Time (s)")
 plt.ylabel("Pressure (bar)")
 plt.title("Pressures")
