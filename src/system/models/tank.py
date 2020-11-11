@@ -62,6 +62,8 @@ class EquilibriumTankModel(Model):
   derived_liquidDensity = 12
   derived_gasVolume = 13
   derived_liquidVolume = 14
+  derived_outletPhase = 15
+  derived_topPhase = 16
 
   def initializeState(self):
     filledGasDensity = CP.PropsSI('D','T',filledTemperature,'Q',1,'N2O')
@@ -140,7 +142,7 @@ class EquilibriumTankModel(Model):
 
     massFlowTop = injectorFlow(0.7, densityTop, 0.4 * constants.Lengths.mm, pressure - ambientPressure)
 
-    return [pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, massFlowTop, gasDensity, liquidDensity, gasVolume, liquidVolume]
+    return [pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, massFlowTop, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase]
   
 class TankModel(EquilibriumTankModel):
   def __init__(self):
