@@ -62,6 +62,7 @@ class CombustionModel(Model):
     injectorMassFlow = models["injector"]["derived"][InjectorModel.derived_massFlow]
     nozzleMassFlow = models["nozzle"]["derived"][NozzleModel.derived_massFlow]
 
+
     dPressure_dt = (gamma - 1) / (volume) * CpT * (injectorMassFlow + fuelMassFlow - nozzleMassFlow) - gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
 
     return [dPressure_dt, dPortRadius_dt, fuelMassFlow]
