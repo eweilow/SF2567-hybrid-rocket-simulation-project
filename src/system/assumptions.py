@@ -1,12 +1,30 @@
-
+import random
 from utils import constants
 
+variables = []
 class Variable:
   def __init__(self, value):
     self._baseValue = value
+    self.value = value
+    variables.append(self)
 
   def get(self):
-    return self._baseValue
+    return self.value
+
+  def set(self, value):
+    self.value = value
+
+  def randomize(self):
+    self.randomizeInRange(self._baseValue * 0.9, self._baseValue * 1.1)
+
+  def randomizeInRange(self, a, b):
+    self.value = random.uniform(a, b)
+
+  @staticmethod
+  def reset():
+    for variable in variables:
+      variable.set(variable._baseValue)
+
 
 
 tankVolume = Variable(35 * constants.Volume.liter)
