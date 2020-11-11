@@ -6,8 +6,6 @@ atmosphericPressure = 101300
 
 import assumptions
 
-portLength = 33 * constants.Lengths.cm
-
 class CombustionModel(Model):
   def derivativesDependsOn(self, models):
     return [models["injector", models["nozzle"]]]
@@ -72,13 +70,13 @@ class CombustionModel(Model):
     portRadius = state[self.states_portRadius]
     portArea = math.pow(portRadius, 2) * math.pi
 
-    burningArea = portRadius * 2 * portLength * math.pi
+    burningArea = portRadius * 2 * assumptions.fuelPortLength.get() * math.pi
    
     injectorMassFlow = models["injector"]["derived"][InjectorModel.derived_massFlow]
     oxidizerFlux = injectorMassFlow / portArea
 
     dPortRadius_dt = assumptions.fuelGrainAConstant.get() * math.pow(oxidizerFlux, assumptions.fuelGrainNConstant.get())
-    fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * portLength * assumptions.fuelDensity.get()
+    fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * assumptions.fuelPortLength.get() * assumptions.fuelDensity.get()
 
     ofRatio = injectorMassFlow / fuelMassFlow if fuelMassFlow > 1e-3 else 1000
 
@@ -93,6 +91,6 @@ class CombustionModel(Model):
     startupTransient = combustionEfficiencyTransient(t)
     cStar = cStar * startupTransient
 
-    volume = assumptions.preCombustionChamberVolume.get() + assumptions.postCombustionChamberVolume.get() + portArea * portLength
+    volume = assumptions.preCombustionChamberVolume.get() + assumptions.postCombustionChamberVolume.get() + portArea * assumptions.fuelPortLength.get()
 
     return [volume, temperature, gamma, portArea, burningArea, CpT, dPortRadius_dt, fuelMassFlow, ofRatio, cStar, thrustCoefficient, exhaustPressure, molecularMass, density]
