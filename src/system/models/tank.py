@@ -7,8 +7,6 @@ from equations.hemInjector import computeHEMInjector
 
 import assumptions
 
-ambientPressure = 101300
-
 class EquilibriumTankModel(Model):
   def derivativesDependsOn(self, models):
     return [models["injector"], models["passiveVent"]]

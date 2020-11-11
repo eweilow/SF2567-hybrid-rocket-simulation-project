@@ -33,6 +33,10 @@ with open('./tmp/simulation.npy', 'rb') as f:
       "state": np.load(f),
       "derived": np.load(f),
     },
+    "environment": {
+      "state": np.load(f),
+      "derived": np.load(f),
+    },
   }
 
 

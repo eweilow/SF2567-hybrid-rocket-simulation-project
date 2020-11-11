@@ -5,6 +5,7 @@ from models.injector import InjectorModel
 from models.combustion import CombustionModel
 from models.nozzle import NozzleModel
 from models.passiveVent import PassiveVentModel
+from models.environment import EnvironmentModel
 
 from solve.dependencies import recurseModelDependencies
 from solve.models import initializeModel, initializeModelMatrices
@@ -17,6 +18,7 @@ def makeODE():
     "passiveVent": initializeModel("passiveVent", PassiveVentModel()),
     "combustion": initializeModel("combustion", CombustionModel()),
     "nozzle": initializeModel("nozzle", NozzleModel()),
+    "environment": initializeModel("environment", EnvironmentModel()),
   }
 
   fullSystemLength = initializeModelMatrices(models)

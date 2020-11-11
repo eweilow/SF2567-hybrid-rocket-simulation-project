@@ -5,14 +5,12 @@ from equations.hemInjector import computeHEMInjector
 
 import assumptions
 
-ambientPressure = 101300
-
 class PassiveVentModel(Model):
   def derivativesDependsOn(self, models):
     return []
 
   def derivedVariablesDependsOn(self, models):
-    return [models["tank"]]
+    return [models["tank"], models["environment"]]
   
   derived_massFlow = 0
 
@@ -27,6 +25,9 @@ class PassiveVentModel(Model):
     from models.nozzle import NozzleModel
     from models.injector import InjectorModel
     from models.combustion import CombustionModel
+    from models.environment import EnvironmentModel
+
+    ambientPressure = models["environment"]["derived"][EnvironmentModel.derived_ambientPressure]
     
     tankPressure = models["tank"]["derived"][TankModel.derived_pressure]
     oxidizerDensity = models["tank"]["derived"][TankModel.derived_outletTopDensity]

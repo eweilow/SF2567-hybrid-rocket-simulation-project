@@ -2,7 +2,6 @@ import math
 from models.base import Model
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
-atmosphericPressure = 101300
 
 import assumptions
 
@@ -11,7 +10,7 @@ class CombustionModel(Model):
     return [models["injector", models["nozzle"]]]
 
   def derivedVariablesDependsOn(self, models):
-    return [models["injector"], models["tank"]]
+    return [models["injector"], models["tank"], models["environment"]]
     
   def __init__(self):
     from utils.cea import NasaCEA
@@ -37,7 +36,7 @@ class CombustionModel(Model):
   derived_density = 12
 
   def initializeState(self):
-    initialPressure = atmosphericPressure
+    initialPressure = assumptions.initialAtmosphericPressure.get()
     return [initialPressure, assumptions.fuelPortInitialRadius.get(), 0]
 
   def computeDerivatives(self, t, state, derived, models):
@@ -66,6 +65,9 @@ class CombustionModel(Model):
     from models.nozzle import NozzleModel
     from models.injector import InjectorModel
     from models.combustion import CombustionModel
+    from models.environment import EnvironmentModel
+
+    ambientPressure = models["environment"]["derived"][EnvironmentModel.derived_ambientPressure]
 
     portRadius = state[self.states_portRadius]
     portArea = math.pow(portRadius, 2) * math.pi
@@ -84,7 +86,7 @@ class CombustionModel(Model):
     exhaustArea = pow(models["nozzle"]["state"][NozzleModel.states_exhaustRadius], 2) * math.pi
 
     areaRatio = exhaustArea / throatArea
-    _, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure = self.cea.getPerformanceParameters(state[self.states_pressure], atmosphericPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
+    _, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure = self.cea.getPerformanceParameters(state[self.states_pressure], ambientPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
     
     CpT = temperature * Cp
     cStar = cStar * assumptions.combustionEfficiency.get()

@@ -26,6 +26,7 @@ class Variable:
       variable.set(variable._baseValue)
 
 
+initialAtmosphericPressure = Variable(101300)
 
 tankVolume = Variable(35 * constants.Volume.liter)
 tankFillingGrade = Variable(0.95)

@@ -6,14 +6,12 @@ from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff
 from equations.falloffs import sigmoid
 import assumptions
 
-ambientPressure = 101300
-
 class NozzleModel(Model):
   def derivativesDependsOn(self, models):
     return []
 
   def derivedVariablesDependsOn(self, models):
-    return [models["combustion"]]
+    return [models["combustion"], models["environment"]]
 
   states_throatRadius = 0
   states_exhaustRadius = 1
@@ -37,7 +35,9 @@ class NozzleModel(Model):
     from models.nozzle import NozzleModel
     from models.injector import InjectorModel
     from models.combustion import CombustionModel
+    from models.environment import EnvironmentModel
 
+    ambientPressure = models["environment"]["derived"][EnvironmentModel.derived_ambientPressure]
     chamberPressure = models["combustion"]["state"][CombustionModel.states_pressure]
     cStar = models["combustion"]["derived"][CombustionModel.derived_cStar]
     thrustCoefficient = models["combustion"]["derived"][CombustionModel.derived_thrustCoefficient] * assumptions.nozzleEfficiency.get()
