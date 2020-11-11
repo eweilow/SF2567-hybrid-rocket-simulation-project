@@ -3,6 +3,7 @@ import CoolProp.CoolProp as CP
 import scipy.optimize
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
+from equations.hemInjector import computeHEMInjector
 
 import assumptions
 
@@ -93,8 +94,6 @@ class EquilibriumTankModel(Model):
   tankBurnoutTime = 0
 
   def computeDerivedVariables(self, t, state, models):
-    from models.injector import computeHEMInjector
-    
     totalMass = state[self.states_oxidizerMass]
     totalEnergy = state[self.states_totalEnergy]
 
