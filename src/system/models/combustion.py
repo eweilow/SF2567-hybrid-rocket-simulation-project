@@ -4,13 +4,9 @@ from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
 atmosphericPressure = 101300
 
-fuelDensity = 900
-initialPortRadius = constants.Lengths.mm * 25
-aConstant = 0.155e-3 #http://www.scielo.org.za/pdf/rd/v33/05.pdf
-nConstant = 0.5
-portLength = 33 * constants.Lengths.cm
+import assumptions
 
-combustionEfficiency = 0.9
+portLength = 33 * constants.Lengths.cm
 
 class CombustionModel(Model):
   def derivativesDependsOn(self, models):
@@ -44,7 +40,7 @@ class CombustionModel(Model):
 
   def initializeState(self):
     initialPressure = atmosphericPressure
-    return [initialPressure, initialPortRadius, 0]
+    return [initialPressure, assumptions.fuelPortInitialRadius.get(), 0]
 
   def computeDerivatives(self, t, state, derived, models):
     from models.tank import TankModel
@@ -81,8 +77,8 @@ class CombustionModel(Model):
     injectorMassFlow = models["injector"]["derived"][InjectorModel.derived_massFlow]
     oxidizerFlux = injectorMassFlow / portArea
 
-    dPortRadius_dt = aConstant * math.pow(oxidizerFlux, nConstant)
-    fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * portLength * fuelDensity
+    dPortRadius_dt = assumptions.fuelGrainAConstant.get() * math.pow(oxidizerFlux, assumptions.fuelGrainNConstant.get())
+    fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * portLength * assumptions.fuelDensity.get()
 
     ofRatio = injectorMassFlow / fuelMassFlow if fuelMassFlow > 1e-3 else 1000
 
@@ -90,13 +86,13 @@ class CombustionModel(Model):
     exhaustArea = pow(models["nozzle"]["state"][NozzleModel.states_exhaustRadius], 2) * math.pi
 
     areaRatio = exhaustArea / throatArea
-    Isp, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure = self.cea.getPerformanceParameters(state[self.states_pressure], atmosphericPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
+    _, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure = self.cea.getPerformanceParameters(state[self.states_pressure], atmosphericPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
     
     CpT = temperature * Cp
-    cStar = cStar * combustionEfficiency
+    cStar = cStar * assumptions.combustionEfficiency.get()
     startupTransient = combustionEfficiencyTransient(t)
     cStar = cStar * startupTransient
 
-    volume = 1 * constants.Volume.liter + portArea * portLength
+    volume = assumptions.preCombustionChamberVolume.get() + assumptions.postCombustionChamberVolume.get() + portArea * portLength
 
     return [volume, temperature, gamma, portArea, burningArea, CpT, dPortRadius_dt, fuelMassFlow, ofRatio, cStar, thrustCoefficient, exhaustPressure, molecularMass, density]

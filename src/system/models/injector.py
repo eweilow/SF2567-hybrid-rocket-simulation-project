@@ -4,9 +4,7 @@ from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
 import CoolProp.CoolProp as CP
 
-injectorDischargeCoefficient = 0.83
-injectorHoles = 38
-injectorHoleRadius = constants.Lengths.mm * 0.75
+import assumptions
 
 def injectorFlow(Cd, density, diameter, pressureDrop):
   area = math.pow(diameter/2.0, 2) * math.pi
@@ -15,6 +13,53 @@ def injectorFlow(Cd, density, diameter, pressureDrop):
     return 0
   
   return Cd * area * math.sqrt(2 * density * pressureDrop)
+
+def computeHEMInjector(
+  dischargeCoefficient,
+  numberOfHoles,
+  holeDiameter,
+  densityBefore,
+  pressureBefore,
+  pressureAfter,
+  temperatureBefore,
+  phaseBefore,
+  enthalpyBefore
+):
+  try:
+    entropyBefore = CP.PropsSI('S','T',temperatureBefore,'Q',phaseBefore,'N2O')
+  except Exception as exc:
+    print("Failed to evaluate entropyBefore", exc)
+    return 0
+
+  try:
+    enthalpyAfter = CP.PropsSI('H','P',pressureAfter,'S',entropyBefore,'N2O')
+  except Exception as exc:
+    print("Failed to evaluate entropyBefore", exc)
+    return 0
+
+  try:
+    densityAfter = CP.PropsSI('D','P',pressureAfter,'S',entropyBefore,'N2O')
+  except Exception as exc:
+    print("Failed to evaluate entropyBefore", exc)
+    return 0
+
+  try:
+    saturatedPressureBefore = CP.PropsSI('P','T',temperatureBefore,'Q',0,'N2O')
+  except Exception as exc:
+    print("Failed to evaluate entropyBefore", exc)
+    return 0
+
+  # HEM injector model https://web.stanford.edu/~cantwell/Recent_publications/Zimmerman_et_al_AIAA_2013-4045.pdf
+  kappa = math.sqrt((pressureBefore - pressureAfter) / (saturatedPressureBefore - pressureAfter))
+  G_spi = dischargeCoefficient * math.sqrt(2 * densityBefore * (pressureBefore - pressureAfter)) if pressureBefore > pressureAfter else 0
+  G_hem = dischargeCoefficient * densityAfter * math.sqrt(2 * (enthalpyBefore - enthalpyAfter)) if enthalpyBefore > enthalpyAfter else 0
+
+  G = (kappa * G_spi + G_hem) / (1 + kappa)
+  area = numberOfHoles * math.pow(holeDiameter / 2.0, 2) * math.pi
+
+  return G * area
+
+
 
 class InjectorModel(Model):
   def derivativesDependsOn(self, models):
@@ -45,26 +90,17 @@ class InjectorModel(Model):
     tankTemperature = models["tank"]["derived"][TankModel.derived_temperature]
     tankPhase = models["tank"]["derived"][TankModel.derived_outletPhase]
     
-    try:
-      tankEntropy = CP.PropsSI('S','P',tankPressure,'Q',tankPhase,'N2O')
-      combustionChamberEnthalpy = CP.PropsSI('H','P',combustionChamberPressure,'S',tankEntropy,'N2O')
-      combustionChamberDensity = CP.PropsSI('D','P',combustionChamberPressure,'S',tankEntropy,'N2O')
+    startupTransient = injectorTransientFalloff(t)
+    massFlow = startupTransient * computeHEMInjector(
+      assumptions.injectorHoleDischargeCoefficient.get(),
+      assumptions.injectorHoleCount.get(),
+      assumptions.injectorHoleDiameter.get(),
+      oxidizerDensity,
+      tankPressure,
+      combustionChamberPressure,
+      tankTemperature,
+      tankPhase,
+      tankEnthalpy
+    )
 
-      saturatedTankPressure = CP.PropsSI('P','T',tankTemperature,'Q',0,'N2O')
-      kappa = math.sqrt((tankPressure - combustionChamberPressure) / (saturatedTankPressure - combustionChamberPressure))
-
-      # HEM injector model https://web.stanford.edu/~cantwell/Recent_publications/Zimmerman_et_al_AIAA_2013-4045.pdf
-      G_spi = injectorDischargeCoefficient * math.sqrt(2 * oxidizerDensity * (tankPressure - combustionChamberPressure)) if tankPressure - combustionChamberPressure > 0 else 0
-      G_hem = injectorDischargeCoefficient * combustionChamberDensity * math.sqrt(2 * (tankEnthalpy - combustionChamberEnthalpy)) if tankEnthalpy - combustionChamberEnthalpy > 0 else 0
-
-      G = (kappa * G_spi + G_hem) / (1 + kappa)
-      area = injectorHoles * math.pow(injectorHoleRadius, 2) * math.pi
-
-      startupTransient = injectorTransientFalloff(t)
-      massFlow = startupTransient * G * area
-    
-
-      return [massFlow]
-    except:
-      print("Failed to evaluate tank mass flow in time {:.4f}".format(t))
-      return [0]
+    return [massFlow]

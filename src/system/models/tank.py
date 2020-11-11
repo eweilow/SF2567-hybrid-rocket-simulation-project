@@ -4,12 +4,7 @@ import scipy.optimize
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
 
-tankVolume = 35 * constants.Volume.liter
-fillingGrade = 0.95
-
-filledLiquidVolume = tankVolume * fillingGrade
-filledGasVolume = tankVolume - filledLiquidVolume
-filledTemperature = 293
+import assumptions
 
 ambientPressure = 101300
 
@@ -66,14 +61,17 @@ class EquilibriumTankModel(Model):
   derived_topPhase = 16
 
   def initializeState(self):
-    filledGasDensity = CP.PropsSI('D','T',filledTemperature,'Q',1,'N2O')
-    filledLiquidDensity = CP.PropsSI('D','T',filledTemperature,'Q',0,'N2O')
+    filledGasDensity = CP.PropsSI('D','T',assumptions.tankFilledTemperature.get(),'Q',1,'N2O')
+    filledLiquidDensity = CP.PropsSI('D','T',assumptions.tankFilledTemperature.get(),'Q',0,'N2O')
+
+    filledLiquidVolume = assumptions.tankVolume.get() * assumptions.tankFillingGrade.get()
+    filledGasVolume = assumptions.tankVolume.get() - filledLiquidVolume
 
     filledGasMass = filledGasDensity * filledGasVolume
     filledLiquidMass = filledLiquidDensity * filledLiquidVolume
 
     totalMass = filledGasMass + filledLiquidMass
-    totalEnergy = self.deriveTotalEnergy(filledGasMass, filledLiquidMass, filledTemperature)
+    totalEnergy = self.deriveTotalEnergy(filledGasMass, filledLiquidMass, assumptions.tankFilledTemperature.get())
     return [totalMass, totalEnergy]
 
   def computeDerivatives(self, t, state, derived, models):
@@ -95,13 +93,13 @@ class EquilibriumTankModel(Model):
   tankBurnoutTime = 0
 
   def computeDerivedVariables(self, t, state, models):
-    from models.injector import injectorFlow
+    from models.injector import computeHEMInjector
     
     totalMass = state[self.states_oxidizerMass]
     totalEnergy = state[self.states_totalEnergy]
 
     def tempFn(temperature):
-      return self.derivePropellantVolume(totalMass, totalEnergy, temperature) - tankVolume
+      return self.derivePropellantVolume(totalMass, totalEnergy, temperature) - assumptions.tankVolume.get()
 
     try:
       temperature = scipy.optimize.brentq(tempFn, 183, 309)
@@ -125,7 +123,7 @@ class EquilibriumTankModel(Model):
     gasVolume = gasMass / liquidDensity
     liquidVolume = liquidMass / liquidDensity
 
-    liquidLevel = liquidVolume / tankVolume
+    liquidLevel = liquidVolume / assumptions.tankVolume.get()
 
     # outlet is liquid unless vapor quality is 1
     # 0 if liquidLevel > bottomFalloff else (1 - max(0, liquidLevel / bottomFalloff))
@@ -140,7 +138,17 @@ class EquilibriumTankModel(Model):
     hOutlet = CP.PropsSI('H','T',temperature,'Q',outletPhase,'N2O')
     hTop = CP.PropsSI('H','T',temperature,'Q',topPhase,'N2O')
 
-    massFlowTop = injectorFlow(0.7, densityTop, 0.4 * constants.Lengths.mm, pressure - ambientPressure)
+    massFlowTop = computeHEMInjector(
+      assumptions.tankPassiveVentDischargeCoefficient.get(), 
+      1,
+      assumptions.tankPassiveVentDiameter.get(),
+      densityTop, 
+      pressure,
+      ambientPressure,
+      temperature,
+      topPhase,
+      hTop
+    )
 
     return [pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, massFlowTop, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase]
   

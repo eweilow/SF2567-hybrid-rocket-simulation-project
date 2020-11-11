@@ -3,12 +3,11 @@ from models.base import Model
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
 
+from equations.falloffs import sigmoid
+import assumptions
+
 ambientPressure = 101300
 
-initialThroatRadius = constants.Lengths.mm * 19.466
-exhaustRadius = constants.Lengths.mm * 44.777
-
-nozzleEfficiency = 0.9
 class NozzleModel(Model):
   def derivativesDependsOn(self, models):
     return []
@@ -23,10 +22,15 @@ class NozzleModel(Model):
   derived_specificImpulse = 2
   
   def initializeState(self):
-    return [initialThroatRadius, exhaustRadius]
+    return [assumptions.nozzleThroatRadius.get(), assumptions.nozzleExhaustRadius.get()]
 
   def computeDerivatives(self, t, state, derived, models):
-    return [0, 0]
+    erosionRate = assumptions.nozzleErosionConstant.get()
+    erosionStart = assumptions.nozzleErosionStart.get()
+    erosionFalloff = sigmoid(t, erosionStart, 1)
+
+    dThroatRadius_dt = erosionFalloff * erosionRate
+    return [dThroatRadius_dt, 0]
 
   def computeDerivedVariables(self, t, state, models):
     from models.tank import TankModel
@@ -36,10 +40,11 @@ class NozzleModel(Model):
 
     chamberPressure = models["combustion"]["state"][CombustionModel.states_pressure]
     cStar = models["combustion"]["derived"][CombustionModel.derived_cStar]
-    thrustCoefficient = models["combustion"]["derived"][CombustionModel.derived_thrustCoefficient] * nozzleEfficiency
+    thrustCoefficient = models["combustion"]["derived"][CombustionModel.derived_thrustCoefficient] * assumptions.nozzleEfficiency.get()
     exhaustPressure = models["combustion"]["derived"][CombustionModel.derived_exhaustPressure]
 
     throatRadius = state[self.states_throatRadius]
+
     throatArea = math.pow(throatRadius, 2) * math.pi
 
     # err what
