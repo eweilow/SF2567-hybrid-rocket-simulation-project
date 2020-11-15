@@ -10,31 +10,30 @@ def computeHEMInjector(
   pressureAfter,
   temperatureBefore,
   phaseBefore,
-  enthalpyBefore
+  enthalpyBefore,
 ):
   try:
     saturatedPressureBefore = CP.PropsSI('P','T',temperatureBefore,'Q',0,'N2O')
   except Exception as exc:
-    print("Failed to evaluate saturatedPressureBefore", exc)
+    print("Failed to evaluate saturatedPressureBefore:\n", exc)
     return 0
 
   try:
     entropyBefore = CP.PropsSI('Smolar','T',temperatureBefore,'Q',phaseBefore,'N2O')
   except Exception as exc:
-    print("Failed to evaluate entropyBefore", exc)
+    print("Failed to evaluate entropyBefore:\n", exc)
     return 0
 
-  entropyBefore = max(entropyBefore, 100)
   try:
     enthalpyAfter = CP.PropsSI('H','P',pressureAfter,'Smolar',entropyBefore,'N2O')
   except Exception as exc:
-    print("Failed to evaluate enthalpyAfter", exc)
+    print("Failed to evaluate enthalpyAfter:\n", exc)
     return 0
 
   try:
     densityAfter = CP.PropsSI('D','P',pressureAfter,'Smolar',entropyBefore,'N2O')
   except Exception as exc:
-    print("Failed to evaluate densityAfter", exc)
+    print("Failed to evaluate densityAfter:\n", exc)
     return 0
 
   # HEM injector model https://web.stanford.edu/~cantwell/Recent_publications/Zimmerman_et_al_AIAA_2013-4045.pdf

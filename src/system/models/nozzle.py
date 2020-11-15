@@ -25,7 +25,8 @@ class NozzleModel(Model):
   def computeDerivatives(self, t, state, derived, models):
     erosionRate = assumptions.nozzleErosionConstant.get()
     erosionStart = assumptions.nozzleErosionStart.get()
-    erosionFalloff = sigmoid(t, erosionStart, 1)
+    erosionStartRadius = assumptions.nozzleErosionStartRadius.get()
+    erosionFalloff = sigmoid(t, erosionStart, erosionStartRadius)
 
     dThroatRadius_dt = erosionFalloff * erosionRate
     return [dThroatRadius_dt, 0]

@@ -8,7 +8,7 @@ from solve.states import applyModelStates, collectModelStates
 
 models, system, events, initialState = makeODE()
 
-maximumSolveTime = 20
+maximumSolveTime = 40
 
 sol = solve_ivp(
   system, 

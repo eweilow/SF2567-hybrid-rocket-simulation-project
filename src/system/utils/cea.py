@@ -22,7 +22,8 @@ class NasaCEA:
     combustionPressure = max(10, combustionPressure) # Limitation of the library...
     
     HMOLAR = CP.PropsSI('HMOLAR','T',oxidizerTemperature,'P',combustionPressure,"N2O") / 1e3
-    RHO = CP.PropsSI('D','T',oxidizerTemperature,'P',combustionPressure,"N2O") * 1e3 / (1e2 * 1e2 * 1e2)
+    oxidizerDensity = CP.PropsSI('D','T',oxidizerTemperature,'P',combustionPressure,"N2O")
+    RHO = oxidizerDensity * 1e3 / (1e2 * 1e2 * 1e2)
 
     # print(HMOLAR, RHO)
 
@@ -76,4 +77,4 @@ class NasaCEA:
 
       exitPressure = combustionPressure / PcOvPe
 
-      return Isp, Cp, MW, Cstar, Tc, gamma, rho, Cf, exitPressure
+      return Isp, Cp, MW, Cstar, Tc, gamma, rho, Cf, exitPressure, oxidizerDensity

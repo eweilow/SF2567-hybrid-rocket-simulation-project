@@ -18,7 +18,8 @@ class CombustionModel(Model):
 
   states_pressure = 0
   states_portRadius = 1
-  states_burntFuel = 2
+  states_fuelMass = 2
+  states_propellantMass = 3
 
   derived_volume = 0
   derived_temperature = 1
@@ -33,11 +34,17 @@ class CombustionModel(Model):
   derived_thrustCoefficient = 10
   derived_exhaustPressure = 11
   derived_molecularMass = 12
-  derived_density = 12
+  derived_density = 13
+  derived_oxidizerDensity = 14
+  derived_massInChamber = 15
 
   def initializeState(self):
     initialPressure = assumptions.initialAtmosphericPressure.get()
-    return [initialPressure, assumptions.fuelPortInitialRadius.get(), 0]
+
+    fuelVolume = (math.pow(assumptions.fuelPortMaximumRadius.get(), 2) * math.pi - math.pow(assumptions.fuelPortInitialRadius.get(), 2) * math.pi) * assumptions.fuelPortLength.get()
+    fuelMass = fuelVolume * assumptions.fuelDensity.get()
+
+    return [initialPressure, assumptions.fuelPortInitialRadius.get(), fuelMass, 0]
 
   def computeDerivatives(self, t, state, derived, models):
     from models.tank import TankModel
@@ -55,10 +62,10 @@ class CombustionModel(Model):
     injectorMassFlow = models["injector"]["derived"][InjectorModel.derived_massFlow]
     nozzleMassFlow = models["nozzle"]["derived"][NozzleModel.derived_massFlow]
 
+    massFlow = injectorMassFlow + fuelMassFlow - nozzleMassFlow
+    dPressure_dt = (gamma - 1) / (volume) * CpT * (massFlow) - gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
 
-    dPressure_dt = (gamma - 1) / (volume) * CpT * (injectorMassFlow + fuelMassFlow - nozzleMassFlow) - gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
-
-    return [dPressure_dt, dPortRadius_dt, fuelMassFlow]
+    return [dPressure_dt, dPortRadius_dt, -fuelMassFlow, massFlow]
 
   def computeDerivedVariables(self, t, state, models):
     from models.tank import TankModel
@@ -86,7 +93,7 @@ class CombustionModel(Model):
     exhaustArea = pow(models["nozzle"]["state"][NozzleModel.states_exhaustRadius], 2) * math.pi
 
     areaRatio = exhaustArea / throatArea
-    _, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure = self.cea.getPerformanceParameters(state[self.states_pressure], ambientPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
+    _, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure, oxidizerDensity = self.cea.getPerformanceParameters(state[self.states_pressure], ambientPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
     
     CpT = temperature * Cp
     cStar = cStar * assumptions.combustionEfficiency.get()
@@ -95,4 +102,4 @@ class CombustionModel(Model):
 
     volume = assumptions.preCombustionChamberVolume.get() + assumptions.postCombustionChamberVolume.get() + portArea * assumptions.fuelPortLength.get()
 
-    return [volume, temperature, gamma, portArea, burningArea, CpT, dPortRadius_dt, fuelMassFlow, ofRatio, cStar, thrustCoefficient, exhaustPressure, molecularMass, density]
+    return [volume, temperature, gamma, portArea, burningArea, CpT, dPortRadius_dt, fuelMassFlow, ofRatio, cStar, thrustCoefficient, exhaustPressure, molecularMass, density, oxidizerDensity]

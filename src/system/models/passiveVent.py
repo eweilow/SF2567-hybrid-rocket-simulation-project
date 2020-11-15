@@ -1,7 +1,7 @@
 from models.base import Model
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
-from equations.hemInjector import computeHEMInjector
+from equations.normalInjector import computeNormalInjector
 
 import assumptions
 
@@ -36,7 +36,7 @@ class PassiveVentModel(Model):
     tankTemperature = models["tank"]["derived"][TankModel.derived_temperature]
     tankPhase = models["tank"]["derived"][TankModel.derived_topPhase]
     
-    massFlow = computeHEMInjector(
+    massFlow = computeNormalInjector(
       assumptions.tankPassiveVentDischargeCoefficient.get(), 
       1,
       assumptions.tankPassiveVentDiameter.get(),
