@@ -16,7 +16,11 @@ def recurseModelDependencies(t, obj, currentDepth, models, visited):
   for dependency in dependsOn:
     recurseModelDependencies(t, dependency, currentDepth + 1, models, visited)
   
-  obj["derived"] = obj["model"].computeDerivedVariables(t, obj["state"], models)
+  if not obj["simplifiedInit"] is None:
+    mask, args = obj["simplifiedInit"]
+    obj["derived"] = obj["model"].computeSimplifiedDerivedVariables(args, t)
+  else:
+    obj["derived"] = obj["model"].computeDerivedVariables(t, obj["state"], models)
 
   return visited
 

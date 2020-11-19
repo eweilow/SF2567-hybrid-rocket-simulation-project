@@ -10,6 +10,7 @@ from equations.hemInjector import computeHEMInjector
 import options
 import assumptions
 
+from utils.extend import extendDerivative, extend
 
 hasInited = False
 def init():
@@ -96,6 +97,25 @@ class EquilibriumTankModel(Model):
   derived_liquidVolume = 13
   derived_outletPhase = 14
   derived_topPhase = 15
+
+  def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
+    print("mDot...")
+    mDot = extendDerivative(timeHistory, stateHistory[self.states_oxidizerMass])
+    pressure = extend(timeHistory, derivedVariablesHistory[self.derived_pressure])
+    args = (mDot, pressure, )
+    mask = [True, None]
+    return mask, args
+
+  def computeSimplifiedState(self, args, time):
+    mDot, pressure = args
+    return [mDot(time), 0]
+
+  def computeSimplifiedDerivedVariables(self, args, time):
+    mdot, pressure = args
+    ret = [None for i in range(16)]
+    ret[self.derived_pressure] = pressure(time)
+
+    return ret
 
   def initializeState(self):
     init()

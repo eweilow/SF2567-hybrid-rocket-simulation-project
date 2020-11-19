@@ -14,6 +14,16 @@ class InjectorModel(Model):
   
   derived_massFlow = 0
 
+  def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
+    mask = [None]
+    return mask, tuple([])
+
+  def computeSimplifiedState(self, args, time):
+    return [0]
+
+  def computeSimplifiedDerivedVariables(self, args, time):
+    return [None]
+
   def initializeState(self):
     return [0]
 

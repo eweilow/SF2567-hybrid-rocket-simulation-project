@@ -5,6 +5,8 @@ from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff
 
 import assumptions
 
+from utils.extend import extend, extendDerivative
+
 class CombustionModel(Model):
   def derivativesDependsOn(self, models):
     return [models["injector", models["nozzle"]]]
@@ -35,13 +37,22 @@ class CombustionModel(Model):
   derived_molecularMass = 12
   derived_density = 13
   derived_oxidizerDensity = 14
-  derived_massInChamber = 15
 
   def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
-    return 0
+    print("rDot...")
+    rDot = extend(timeHistory, derivedVariablesHistory[self.derived_rDot])
+    pDot = extendDerivative(timeHistory, stateHistory[self.states_pressure])
+    fuelMassDot = extendDerivative(timeHistory, stateHistory[self.states_fuelMass])
+    args = (rDot, pDot, fuelMassDot)
+    mask = [True, True, True]
+    return mask, args
 
-  def computeSimplifiedState(self, timeSinceSimplification, stateHistory, derivedVariablesHistory):
-    return [math.exp(-timeSinceSimplification), None, None]
+  def computeSimplifiedState(self, args, time):
+    rDot, pDot, fuelMassDot = args
+    return [pDot(time), rDot(time), fuelMassDot(time)]
+
+  def computeSimplifiedDerivedVariables(self, args, time):
+    return [None for i in range(15)]
 
   def initializeState(self):
     initialPressure = assumptions.initialAtmosphericPressure.get()

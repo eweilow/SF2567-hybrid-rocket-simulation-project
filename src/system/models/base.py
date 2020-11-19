@@ -4,6 +4,15 @@ class Model:
 
   def derivedVariablesDependsOn(self, models):
     return []
+    
+  def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
+    return False
+
+  def computeSimplifiedState(self, args, time):
+    return []
+
+  def computeSimplifiedDerivedVariables(self, args, time):
+    return []
 
   def initializeState(self):
     return []
@@ -13,3 +22,4 @@ class Model:
 
   def computeDerivedVariables(self, t, state):
     return []
+

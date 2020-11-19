@@ -69,7 +69,7 @@ launchSeaLevelAltitude = Variable(10000)
 
 
 launchTowerLength = Variable(10)
-launchTowerVerticalAngle = Variable(85) # 90 degrees = straight upward
+launchTowerVerticalAngle = Variable(88) # 90 degrees = straight upward
 launchTowerDirectionAngle = Variable(0) # 0 degrees = due north, 90 degrees = due west
 
 

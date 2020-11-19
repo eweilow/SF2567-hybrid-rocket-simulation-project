@@ -16,7 +16,7 @@ from solve.dependencies import recurseModelDependencies
 from solve.models import initializeModel, initializeModelMatrices
 from solve.states import applyModelStates, collectModelStates
 
-def makeODE():
+def makeODE(simplified = False, timeHistory = None, previousModels = None):
   models = {
     "tank": initializeModel("tank", TankModel()),
     "injector": initializeModel("injector", InjectorModel()),
@@ -28,6 +28,16 @@ def makeODE():
   }
 
   fullSystemLength = initializeModelMatrices(models)
+
+  for key in models:
+    if simplified and not previousModels is None and not timeHistory is None:
+      returnValue = models[key]["model"].initializeSimplifiedModel(timeHistory, previousModels[key]["state"], previousModels[key]["derivedResult"])
+      if returnValue is False:
+        models[key]["simplifiedInit"] = None
+      else:
+        models[key]["simplifiedInit"] = returnValue
+    else:
+      models[key]["simplifiedInit"] = None
 
   def system(t, y):
     if options.printTime:
@@ -41,7 +51,11 @@ def makeODE():
 
     fullSystem = np.zeros((1, fullSystemLength))
     for key in models:
-      derivatives = np.array(models[key]["model"].computeDerivatives(t, models[key]["state"], models[key]["derived"], models))
+      if not models[key]["simplifiedInit"] is None:
+        mask, args = models[key]["simplifiedInit"]
+        derivatives = models[key]["model"].computeSimplifiedState(args, t)
+      else:
+        derivatives = np.array(models[key]["model"].computeDerivatives(t, models[key]["state"], models[key]["derived"], models))
       fullSystem = fullSystem + np.dot(models[key]["matrix"], derivatives)
 
     return fullSystem
@@ -75,8 +89,16 @@ def makeODE():
   no_chamber_pressure.terminal = True
   no_chamber_pressure.direction = -1
 
-  events = (no_oxidizer_mass, no_fuel_mass, no_oxidizer_energy, no_chamber_pressure)
+  def hit_ground_event(t, y): 
+    models["flight"]["state"] = np.dot(models["flight"]["invMatrix"], y)
+    return models["flight"]["state"][FlightModel.states_z] + 0.01
+
+  hit_ground_event.terminal = True
+  hit_ground_event.direction = -1
+
+  events = (no_oxidizer_mass, no_fuel_mass, no_oxidizer_energy, no_chamber_pressure, hit_ground_event)
 
   initialState = collectModelStates(models, fullSystemLength)
 
-  return models, system, events, initialState
+
+  return models, system, events, initialState, hit_ground_event

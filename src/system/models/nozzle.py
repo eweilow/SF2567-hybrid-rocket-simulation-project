@@ -6,6 +6,8 @@ from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff
 from equations.falloffs import sigmoid
 import assumptions
 
+from utils.extend import extend
+
 class NozzleModel(Model):
   def derivativesDependsOn(self, models):
     return []
@@ -19,6 +21,21 @@ class NozzleModel(Model):
   derived_thrust = 1
   derived_specificImpulse = 2
   
+  def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
+    print("thrust...")
+    thrust = extend(timeHistory, derivedVariablesHistory[self.derived_thrust])
+    args = (thrust, )
+    mask = [None, None]
+    return mask, args
+
+  def computeSimplifiedState(self, args, time):
+    return [0, 0]
+
+  def computeSimplifiedDerivedVariables(self, args, time):
+    thrust, = args
+    return [None, thrust(time), None]
+
+
   def initializeState(self):
     return [assumptions.nozzleThroatRadius.get(), assumptions.nozzleExhaustRadius.get()]
 
