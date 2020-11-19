@@ -14,8 +14,8 @@ class Variable:
   def set(self, value):
     self.value = value
 
-  def randomize(self):
-    self.randomizeInRange(self._baseValue * 0.9, self._baseValue * 1.1)
+  def randomize(self, radius = 0.1):
+    self.randomizeInRange(self._baseValue * (1 - radius), self._baseValue * (1 + radius))
 
   def randomizeInRange(self, a, b):
     self.value = random.uniform(a, b)

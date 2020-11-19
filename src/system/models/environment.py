@@ -10,7 +10,7 @@ import options
 hasInited = False
 def init():
   global hasInited
-  global pressureInterpolator, densityInterpolator, speedOfSoundInterpolator
+  global pressureInterpolator, densityInterpolator, speedOfSoundInterpolator, seaLevelPressure
   from ambiance import Atmosphere
   if options.enableAtmosphereInterpolation and not hasInited:
     altitudes = np.linspace(0, 20e3, options.atmosphereInterpolantPointCount)
@@ -20,6 +20,9 @@ def init():
     densityInterpolator = scipy.interpolate.interp1d(altitudes, atmosphere.density, kind=interpolant, bounds_error=True, copy=True)
     speedOfSoundInterpolator = scipy.interpolate.interp1d(altitudes, atmosphere.speed_of_sound, kind=interpolant, bounds_error=True, copy=True)
     hasInited = True
+  
+  seaLevelAtmosphere = Atmosphere(0)
+  seaLevelPressure = seaLevelAtmosphere.pressure[0]
 
 class EnvironmentModel(Model):
   def derivativesDependsOn(self, models):
@@ -61,6 +64,10 @@ class EnvironmentModel(Model):
       pressure = atmosphere.pressure[0]
       density = atmosphere.density[0]
       speedOfSound = atmosphere.speed_of_sound[0]
+
+    pressure = pressure * (assumptions.initialAtmosphericPressure.get() / seaLevelPressure)
+    density = density * (assumptions.initialAtmosphericPressure.get() / seaLevelPressure)
+    speedOfSound = speedOfSound * (assumptions.initialAtmosphericPressure.get() / seaLevelPressure)
 
     launchLatitudeRadians = assumptions.launchLatitudeDegrees.get() / 180 * math.pi
 
