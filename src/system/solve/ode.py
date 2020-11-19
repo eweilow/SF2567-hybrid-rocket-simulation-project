@@ -2,6 +2,8 @@ import numpy as np
 
 from utils import constants
 
+import options
+
 from models.tank import TankModel
 from models.injector import InjectorModel
 from models.combustion import CombustionModel
@@ -28,7 +30,8 @@ def makeODE():
   fullSystemLength = initializeModelMatrices(models)
 
   def system(t, y):
-    print(t)
+    if options.printTime:
+      print(t)
     applyModelStates(models, y)
 
     # Set up derived variables

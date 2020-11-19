@@ -1,5 +1,6 @@
 import numpy as np
 
+import options
 
 """
 Compute derived variables for all the models in the order that is defined by each model
@@ -29,7 +30,8 @@ def applyDerivedVariablesToResult(t, y, models):
 
     # Recover derived variables
   for i in range(len(t)):
-    print(t[i])
+    if options.printTime:
+      print(t[i])
     applyModelStates(models, y[:,i])
 
     # Set up derived variables

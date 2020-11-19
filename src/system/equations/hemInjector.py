@@ -1,6 +1,10 @@
 import math
 import CoolProp.CoolProp as CP
 
+import options
+
+from equations.normalInjector import computeNormalInjector
+
 def computeHEMInjector(
   dischargeCoefficient,
   numberOfHoles,
@@ -15,26 +19,30 @@ def computeHEMInjector(
   try:
     saturatedPressureBefore = CP.PropsSI('P','T',temperatureBefore,'Q',0,'N2O')
   except Exception as exc:
-    print("Failed to evaluate saturatedPressureBefore:\n", exc)
-    return 0
+    if options.printFailedInjector:
+      print("Failed to evaluate saturatedPressureBefore:\n", exc)
+    return computeNormalInjector(dischargeCoefficient, numberOfHoles, holeDiameter, densityBefore, pressureBefore, pressureAfter, temperatureBefore, phaseBefore, enthalpyBefore)
 
   try:
     entropyBefore = CP.PropsSI('Smolar','T',temperatureBefore,'Q',phaseBefore,'N2O')
   except Exception as exc:
-    print("Failed to evaluate entropyBefore:\n", exc)
-    return 0
+    if options.printFailedInjector:
+      print("Failed to evaluate entropyBefore:\n", exc)
+    return computeNormalInjector(dischargeCoefficient, numberOfHoles, holeDiameter, densityBefore, pressureBefore, pressureAfter, temperatureBefore, phaseBefore, enthalpyBefore)
 
   try:
     enthalpyAfter = CP.PropsSI('H','P',pressureAfter,'Smolar',entropyBefore,'N2O')
   except Exception as exc:
-    print("Failed to evaluate enthalpyAfter:\n", exc)
-    return 0
+    if options.printFailedInjector:
+      print("Failed to evaluate enthalpyAfter:\n", exc)
+    return computeNormalInjector(dischargeCoefficient, numberOfHoles, holeDiameter, densityBefore, pressureBefore, pressureAfter, temperatureBefore, phaseBefore, enthalpyBefore)
 
   try:
     densityAfter = CP.PropsSI('D','P',pressureAfter,'Smolar',entropyBefore,'N2O')
   except Exception as exc:
-    print("Failed to evaluate densityAfter:\n", exc)
-    return 0
+    if options.printFailedInjector:
+      print("Failed to evaluate densityAfter:\n", exc)
+    return computeNormalInjector(dischargeCoefficient, numberOfHoles, holeDiameter, densityBefore, pressureBefore, pressureAfter, temperatureBefore, phaseBefore, enthalpyBefore)
 
   # HEM injector model https://web.stanford.edu/~cantwell/Recent_publications/Zimmerman_et_al_AIAA_2013-4045.pdf
   kappa = math.sqrt((pressureBefore - pressureAfter) / (saturatedPressureBefore - pressureAfter))

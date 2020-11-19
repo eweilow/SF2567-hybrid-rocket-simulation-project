@@ -1,3 +1,4 @@
 FROM sf2567-python
 COPY . .
-CMD python run.py
+# CMD python -u -m cProfile -s cumtime run.py
+CMD python -u run.py

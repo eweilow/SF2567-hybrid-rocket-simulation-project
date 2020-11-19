@@ -1,11 +1,41 @@
 from models.base import Model
 import CoolProp.CoolProp as CP
 import scipy.optimize
+import numpy as np
+import scipy.interpolate
 from utils import constants
 from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff, inletPhaseFalloff, injectorTransientFalloff
 from equations.hemInjector import computeHEMInjector
 
+import options
 import assumptions
+
+
+hasInited = False
+def init():
+  global hasInited
+  global liquidDensityInterpolator, gasDensityInterpolator, liquidInternalEnergyInterpolator, gasInternalEnergyInterpolator
+  if options.enableTankTemperatureInterpolation and not hasInited:
+    hasInited = True
+    tankInterpolationValues = np.linspace(183, 309, options.tankInterpolantPointCount)
+    
+    interpolant = options.tankInterpolant
+
+    print("computing liquidDensities")
+    liquidDensities = CP.PropsSI('D','T',tankInterpolationValues,'Q',0,'N2O')
+    liquidDensityInterpolator = scipy.interpolate.interp1d(tankInterpolationValues, liquidDensities, kind=interpolant, bounds_error=True, copy=False)
+
+    print("computing gasDensities")
+    gasDensities = CP.PropsSI('D','T',tankInterpolationValues,'Q',1,'N2O')
+    gasDensityInterpolator = scipy.interpolate.interp1d(tankInterpolationValues, gasDensities, kind=interpolant, bounds_error=True, copy=False)
+
+    print("computing liquidSpecificInternalEnergies")
+    liquidSpecificInternalEnergies = CP.PropsSI('U','T',tankInterpolationValues,'Q',0,'N2O')
+    liquidInternalEnergyInterpolator = scipy.interpolate.interp1d(tankInterpolationValues, liquidSpecificInternalEnergies, kind=interpolant, bounds_error=True, copy=False)
+    
+    print("computing gasSpecificInternalEnergies")
+    gasSpecificInternalEnergies = CP.PropsSI('U','T',tankInterpolationValues,'Q',1,'N2O')
+    gasInternalEnergyInterpolator = scipy.interpolate.interp1d(tankInterpolationValues, gasSpecificInternalEnergies, kind=interpolant, bounds_error=True, copy=False)
 
 class EquilibriumTankModel(Model):
   def derivativesDependsOn(self, models):
@@ -15,8 +45,13 @@ class EquilibriumTankModel(Model):
     return []
 
   def deriveVaporQuality(self, totalMass, totalEnergy, temperature):
-    liquidSpecificInternalEnergy = CP.PropsSI('U','T',temperature,'Q',0,'N2O')
-    gasSpecificInternalEnergy = CP.PropsSI('U','T',temperature,'Q',1,'N2O')
+    if options.enableTankTemperatureInterpolation:
+      liquidSpecificInternalEnergy = liquidInternalEnergyInterpolator(temperature)
+      gasSpecificInternalEnergy = gasInternalEnergyInterpolator(temperature)
+      
+    else:
+      liquidSpecificInternalEnergy = CP.PropsSI('U','T',temperature,'Q',0,'N2O')
+      gasSpecificInternalEnergy = CP.PropsSI('U','T',temperature,'Q',1,'N2O')
 
     x = (totalEnergy / totalMass - liquidSpecificInternalEnergy) / (gasSpecificInternalEnergy - liquidSpecificInternalEnergy)
 
@@ -32,8 +67,12 @@ class EquilibriumTankModel(Model):
     return liquidInternalEnergy + gasInternalEnergy
 
   def derivePropellantVolume(self, totalMass, totalEnergy, temperature):
-    liquidDensity = CP.PropsSI('D','T',temperature,'Q',0,'N2O')
-    gasDensity = CP.PropsSI('D','T',temperature,'Q',1,'N2O')
+    if options.enableTankTemperatureInterpolation:
+      liquidDensity = liquidDensityInterpolator(temperature)
+      gasDensity = gasDensityInterpolator(temperature)
+    else:
+      liquidDensity = CP.PropsSI('D','T',temperature,'Q',0,'N2O')
+      gasDensity = CP.PropsSI('D','T',temperature,'Q',1,'N2O')
 
     x = self.deriveVaporQuality(totalMass, totalEnergy, temperature)
     volume = totalMass * ((1-x)/liquidDensity + x/gasDensity)
@@ -59,6 +98,8 @@ class EquilibriumTankModel(Model):
   derived_topPhase = 15
 
   def initializeState(self):
+    init()
+
     filledGasDensity = CP.PropsSI('D','T',assumptions.tankFilledTemperature.get(),'Q',1,'N2O')
     filledLiquidDensity = CP.PropsSI('D','T',assumptions.tankFilledTemperature.get(),'Q',0,'N2O')
 
@@ -99,7 +140,18 @@ class EquilibriumTankModel(Model):
       return self.derivePropellantVolume(totalMass, totalEnergy, temperature) - assumptions.tankVolume.get()
 
     try:
-      temperature = scipy.optimize.brentq(tempFn, 183, 309)
+      if options.rootFindingType == "bisect":
+        temperature = scipy.optimize.bisect(tempFn, 183, 309)
+
+      if options.rootFindingType == "brentq":
+        temperature = scipy.optimize.brentq(tempFn, 183, 309)
+
+      if options.rootFindingType == "toms748":
+        temperature = scipy.optimize.toms748(tempFn, 183, 309, k=2)
+
+      if options.rootFindingType == "newton":
+        temperature = scipy.optimize.newton(tempFn, 293)
+
     except:
       temperature = 183
 
@@ -114,8 +166,8 @@ class EquilibriumTankModel(Model):
     gasMass = totalMass * vaporQuality
     liquidMass = totalMass - gasMass
 
-    gasDensity = CP.PropsSI('D','T',temperature,'Q',1,'N2O')
-    liquidDensity = CP.PropsSI('D','T',temperature,'Q',0,'N2O')
+    gasDensity = gasDensityInterpolator(temperature) if options.enableTankTemperatureInterpolation else CP.PropsSI('D','T',temperature,'Q',1,'N2O')
+    liquidDensity = liquidDensityInterpolator(temperature) if options.enableTankTemperatureInterpolation else CP.PropsSI('D','T',temperature,'Q',0,'N2O')
 
     gasVolume = gasMass / liquidDensity
     liquidVolume = liquidMass / liquidDensity
