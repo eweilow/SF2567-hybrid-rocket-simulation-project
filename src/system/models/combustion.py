@@ -38,6 +38,12 @@ class CombustionModel(Model):
   derived_oxidizerDensity = 14
   derived_massInChamber = 15
 
+  def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
+    return 0
+
+  def computeSimplifiedState(self, timeSinceSimplification, stateHistory, derivedVariablesHistory):
+    return [math.exp(-timeSinceSimplification), None, None]
+
   def initializeState(self):
     initialPressure = assumptions.initialAtmosphericPressure.get()
 
@@ -84,7 +90,9 @@ class CombustionModel(Model):
     injectorMassFlow = models["injector"]["derived"][InjectorModel.derived_massFlow]
     oxidizerFlux = injectorMassFlow / portArea
 
-    dPortRadius_dt = assumptions.fuelGrainAConstant.get() * math.pow(oxidizerFlux, assumptions.fuelGrainNConstant.get())
+    pressureFactor = math.sqrt(state[self.states_pressure] / assumptions.maximumRegressionRateAt.get())
+
+    dPortRadius_dt = pressureFactor *assumptions.fuelGrainAConstant.get() * math.pow(oxidizerFlux, assumptions.fuelGrainNConstant.get())
     fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * assumptions.fuelPortLength.get() * assumptions.fuelDensity.get()
 
     ofRatio = injectorMassFlow / fuelMassFlow if fuelMassFlow > 1e-3 else 1000

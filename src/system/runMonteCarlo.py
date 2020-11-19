@@ -71,6 +71,9 @@ def stochastic(fileLock, N, output):
     assumptions.rocketOxidizerTankMass.randomize(0.05)
     assumptions.rocketFuelCasingMass.randomize(0.05)
     assumptions.rocketEngineMass.randomize(0.05)
+
+    assumptions.combustionEfficiencyStartupTransientTime.randomize(0.1)
+    assumptions.injectorStartupTransientTime.randomize(0.1)
     
     models, system, events, initialState = makeODE()
     maximumSolveTime = 40

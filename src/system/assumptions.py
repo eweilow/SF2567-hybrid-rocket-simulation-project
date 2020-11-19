@@ -89,3 +89,18 @@ dragBaseLevel = Variable(0.2)
 dragPeakAroundMach = Variable(1.1)
 dragPeak = Variable(0.7)
 dragPeakSmoothingRadius = Variable(0.5)
+
+
+
+
+
+combustionEfficiencyStartupTransientTime = Variable(0.25)
+injectorStartupTransientTime = Variable(0.1)
+
+
+
+
+
+
+# aerospace-06-00075.pdf
+maximumRegressionRateAt = Variable(constants.Pressure.bar * 30)

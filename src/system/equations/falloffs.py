@@ -1,25 +1,27 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+import assumptions
+
 def sigmoid(x, center, radius):
   return 1 / (1 + np.exp(-((x - center)/(radius/np.pi/2))))
 
 def outletPhaseFalloff(liquidLevel):
-  bottomFalloff = 0.01
+  bottomFalloff = 0.1
   return 1.0 - sigmoid(liquidLevel, bottomFalloff, bottomFalloff)
 
 def inletPhaseFalloff(liquidLevel):
-  topFalloff = 0.02
+  topFalloff = 0.025
   return 1.0 - sigmoid(liquidLevel, 1 - topFalloff, topFalloff)
 
 def combustionEfficiencyTransient(time):
-  center = 0.25
+  center = assumptions.combustionEfficiencyStartupTransientTime.get()
 
   minimumLevel = 1e-2
   return minimumLevel + (1 - minimumLevel) * sigmoid(time, center, center)
 
 def injectorTransientFalloff(time):
-  center = 0.1
+  center = assumptions.injectorStartupTransientTime.get()
 
   minimumLevel = 1e-2
   return minimumLevel + (1 - minimumLevel) * sigmoid(time, center, center)
