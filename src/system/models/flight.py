@@ -86,8 +86,7 @@ class FlightModel(Model):
 
     oxidizerMass = models["tank"]["state"][TankModel.states_oxidizerMass]
     fuelMass = models["combustion"]["state"][CombustionModel.states_fuelMass]
-    chamberPropellantMass = models["combustion"]["state"][CombustionModel.states_propellantMass]
-    propellantMass = oxidizerMass + fuelMass + chamberPropellantMass
+    propellantMass = oxidizerMass + fuelMass
     rocketMass = assumptions.rocketOnBoardRecoverySystemMass.get() + assumptions.rocketOnBoardElectronicsMass.get() + assumptions.rocketPayloadMass.get() + assumptions.rocketBodyMass.get() + assumptions.rocketOxidizerTankMass.get() + assumptions.rocketFuelCasingMass.get() + assumptions.rocketEngineMass.get()
 
     totalMass = propellantMass + rocketMass

@@ -19,7 +19,6 @@ class CombustionModel(Model):
   states_pressure = 0
   states_portRadius = 1
   states_fuelMass = 2
-  states_propellantMass = 3
 
   derived_volume = 0
   derived_temperature = 1
@@ -50,7 +49,7 @@ class CombustionModel(Model):
     fuelVolume = (math.pow(assumptions.fuelPortMaximumRadius.get(), 2) * math.pi - math.pow(assumptions.fuelPortInitialRadius.get(), 2) * math.pi) * assumptions.fuelPortLength.get()
     fuelMass = fuelVolume * assumptions.fuelDensity.get()
 
-    return [initialPressure, assumptions.fuelPortInitialRadius.get(), fuelMass, 0]
+    return [initialPressure, assumptions.fuelPortInitialRadius.get(), fuelMass]
 
   def computeDerivatives(self, t, state, derived, models):
     from models.tank import TankModel
@@ -71,7 +70,7 @@ class CombustionModel(Model):
     massFlow = injectorMassFlow + fuelMassFlow - nozzleMassFlow
     dPressure_dt = (gamma - 1) / (volume) * CpT * (massFlow) - gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
 
-    return [dPressure_dt, dPortRadius_dt, -fuelMassFlow, massFlow]
+    return [dPressure_dt, dPortRadius_dt, -fuelMassFlow]
 
   def computeDerivedVariables(self, t, state, models):
     from models.tank import TankModel

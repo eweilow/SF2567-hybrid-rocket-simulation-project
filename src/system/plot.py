@@ -94,11 +94,10 @@ def nextSubplot():
 
 nextSubplot()
 plt.plot(t, models["tank"]["state"][TankModel.states_oxidizerMass] + models["combustion"]["state"][CombustionModel.states_fuelMass], '--')
-plt.plot(t, models["combustion"]["state"][CombustionModel.states_propellantMass], '--')
 plt.plot(t, models["combustion"]["state"][CombustionModel.states_fuelMass], '-')
 plt.plot(t, models["tank"]["derived"][TankModel.derived_liquidMass], '-')
 plt.plot(t, models["tank"]["derived"][TankModel.derived_gasMass], '-')
-plt.legend(("Total", "In chamber", "Fuel", "Oxidizer (Liquid)", "Oxidizer (Gas)"))
+plt.legend(("Total", "Fuel", "Oxidizer (Liquid)", "Oxidizer (Gas)"))
 plt.xlabel("Time (s)")
 plt.ylabel("Propellant mass (kg)")
 plt.title("Propellant")
