@@ -23,22 +23,53 @@ def solver(
 ):
   times = np.arange(fromTime, toTime, outputTimestep)
 
+  if useDae:
+    print("Running solution from {:.2f} to {:.2f} with DAE solver".format(fromTime, toTime))
+  else:
+    print("Running solution from {:.2f} to {:.2f} with ODE solver".format(fromTime, toTime))
+
+  options.solvingWithDAE = useDae
   # sys is of the form def system(t, y)
   if useDae:
     from scikits.odes import dae
+
+    yp0 = sys(fromTime, y0)
+    yp0 = yp0[0,:]
+
     def addafunc(t, y, ml, mu, p, nrowp):
       return p - np.eye(nrowp)
       
+    N = np.size(y0)
     def residual(t, y, ydot, result):
       try:
-        derivative = sys(t, y)
+        derivative = sys(t, y[0:N])
       except Exception:
         return 1
 
-      N = np.size(derivative)
+      gamma = derivative[0, 9]
+      volume = derivative[0, 10]
+      dgamma_dt = ydot[9]
+      dvolume_dt = ydot[10]
+
+      pressure = y[6]
+
+      derivative[0, 6] += pressure / (volume - 1) * dgamma_dt
+      derivative[0, 6] += pressure * gamma / volume * dvolume_dt
+
       for i in range(N):
         result[i] = ydot[i] - derivative[0, i]
       
+
+      # DAE part... not pretty but yes, for now, it works
+      result[9] = ydot[9]
+      result[10] = ydot[10]
+      result[N] = y[N] - derivative[0, 9]
+      result[N+1] = y[N+1] - derivative[0, 10]
+      # print("{:10.6e} {:10.6e} {:10.6e} {:10.6e}".format(t, gamma, y[N], result[N]))
+      # result[9] = y[9] - gamma # Make variable 9 follow gamma.
+
+      # print(y[8], y[10], gamma, y[9], ydot[9])
+      # print(t, result[2], y[2])
       # print(t, np.linalg.norm(result))
       # print(", ".join(["{:9.2e}".format(result[i]) for i in range(N)]))
       # print(", ".join(["{:9.2e}".format(ydot[i]) for i in range(N)]))
@@ -46,47 +77,64 @@ def solver(
       
       return 0
     
-    daeSolver = "lsodi"
+    daeSolver = "ida"
 
-    rtol = 1e-3
-    atol = 1e-3
+    rtol = 1e-4
+    atol = 1e-4
+
+    extra_vars = 2
+
+    if extra_vars > 0:
+      y0 = np.concatenate((y0, np.zeros(extra_vars)))
+      yp0 = np.concatenate((yp0, np.zeros(extra_vars)))
+    
+    # algebraic_vars_idx = [] if extra_vars == 0 else list(range(N, N+extra_vars))
+    # algebraic_vars_idx.append(9)
+    y0[9] = 0
+    yp0[9] = 0
+    y0[10] = 0
+    yp0[10] = 0
+    y0[N] = yp0[9]
+    yp0[N] = 0
+    y0[N+1] = yp0[10]
+    yp0[N+1] = 0
+    algebraic_vars_idx = [6, 9, 10, N, N+1]
 
     if daeSolver == "ida":
       solver = dae('ida', residual, 
-        exclude_algvar_from_error=True,
-        adda_func=addafunc,
-        algebraic_vars_idx=None,
+        compute_initcond="yp0",
+        exclude_algvar_from_error=False,
+        algebraic_vars_idx=algebraic_vars_idx,
         atol=atol,
         rtol=rtol,
         max_steps=500000
       )
 
-      yp0 = sys(fromTime, y0)
-      solution = solver.solve(times, y0, yp0[0,:])
+      solution = solver.solve(times, y0, yp0)
 
-      if not solution.flag == 1:
+      if not solution.flag == 0:
         raise Exception("Flag is not 0 (it is " + str(solution.flag) + ")")
 
       t = np.array(solution.values.t)
       v = np.array(solution.values.y)
-      return np.transpose(t), np.transpose(v), t[-1]
+      return np.transpose(t), np.transpose(v[:,0:N]), t[-1]
     elif daeSolver == "lsodi":
       solver = dae('lsodi', residual, 
+        compute_initcond="yp0",
         method="adams",
         order=12,
-        exclude_algvar_from_error=True,
+        exclude_algvar_from_error=False,
         adda_func=addafunc,
-        algebraic_vars_idx=None,
+        algebraic_vars_idx=algebraic_vars_idx,
         atol=atol,
         rtol=rtol,
         max_steps=500000
       )
 
-      yp0 = sys(fromTime, y0)
-      solution = solver.solve(times, y0, yp0[0,:])
+      solution = solver.solve(times, y0, yp0)
 
       flag, t, v, *rest = solution
-      return np.transpose(t), np.transpose(v), t[-1]
+      return np.transpose(t), np.transpose(v[:,0:N]), t[-1]
     else:
       raise Exception("Unknown solver")
     # t, y = values
@@ -102,8 +150,6 @@ def solver(
     events=events
   )
   
-  print(np.shape(sol.t))
-  print(np.shape(sol.y))
   return sol.t, sol.y, sol.t[-1]
 
 def recoverModelState(t, y, models):
@@ -123,9 +169,10 @@ start = time.time()
 maximumSolveTime = 10
 options.printTime = False
 
+solveWithDAE = True
+
 models, system, events, initialState, hit_ground_event = makeODE()
-t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.05, events, useDae=True)
-print(tend)
+t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.05, events, useDae=solveWithDAE)
 recoverModelState(t, y, models)
 
 models2, system2, events2, initialState2, hit_ground_event2 = makeODE(simplified = True, timeHistory=t, previousModels=models)

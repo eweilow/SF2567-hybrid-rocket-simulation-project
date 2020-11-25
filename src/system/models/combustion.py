@@ -5,6 +5,7 @@ from equations.falloffs import combustionEfficiencyTransient, outletPhaseFalloff
 
 import assumptions
 
+import options
 from utils.extend import extend, extendDerivative
 
 class CombustionModel(Model):
@@ -21,6 +22,8 @@ class CombustionModel(Model):
   states_pressure = 0
   states_portRadius = 1
   states_fuelMass = 2
+
+  states_dae_gamma = 3
 
   derived_volume = 0
   derived_temperature = 1
@@ -48,7 +51,7 @@ class CombustionModel(Model):
 
   def computeSimplifiedState(self, args, time):
     rDot, pDot, fuelMassDot = args
-    return [pDot(time), rDot(time), fuelMassDot(time)]
+    return [pDot(time), rDot(time), fuelMassDot(time), 0, 0]
 
   def computeSimplifiedDerivedVariables(self, args, time):
     return [None for i in range(15)]
@@ -59,7 +62,7 @@ class CombustionModel(Model):
     fuelVolume = (math.pow(assumptions.fuelPortMaximumRadius.get(), 2) * math.pi - math.pow(assumptions.fuelPortInitialRadius.get(), 2) * math.pi) * assumptions.fuelPortLength.get()
     fuelMass = fuelVolume * assumptions.fuelDensity.get()
 
-    return [initialPressure, assumptions.fuelPortInitialRadius.get(), fuelMass]
+    return [initialPressure, assumptions.fuelPortInitialRadius.get(), fuelMass, 0, 0]
 
   def computeDerivatives(self, t, state, derived, models):
     from models.tank import TankModel
@@ -78,9 +81,12 @@ class CombustionModel(Model):
     nozzleMassFlow = models["nozzle"]["derived"][NozzleModel.derived_massFlow]
 
     massFlow = injectorMassFlow + fuelMassFlow - nozzleMassFlow
-    dPressure_dt = (gamma - 1) / (volume) * CpT * (massFlow) - gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
 
-    return [dPressure_dt, dPortRadius_dt, -fuelMassFlow]
+    dPressure_dt = (gamma - 1) / (volume) * CpT * (massFlow)
+    if not options.solvingWithDAE:
+      dPressure_dt -= gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
+
+    return [dPressure_dt, dPortRadius_dt, -fuelMassFlow, gamma, volume]
 
   def computeDerivedVariables(self, t, state, models):
     from models.tank import TankModel
