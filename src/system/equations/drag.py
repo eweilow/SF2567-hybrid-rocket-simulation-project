@@ -6,6 +6,9 @@ from equations.falloffs import sigmoid
 import assumptions
 
 def getDragCoefficient(mach):
+  if mach > 10:
+    mach = 10
+
   a = 0.9
   b = -0.6
   c = assumptions.dragPeakAroundMach.get()

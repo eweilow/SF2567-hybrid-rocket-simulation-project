@@ -46,6 +46,8 @@ class EnvironmentModel(Model):
     surfaceAltitude = models["flight"]["state"][FlightModel.states_z]
     if surfaceAltitude < 0:
       surfaceAltitude = 0
+    if surfaceAltitude > 80000:
+      surfaceAltitude = 80000
 
     atmosphere = Atmosphere(surfaceAltitude)
     pressure = atmosphere.pressure[0]
