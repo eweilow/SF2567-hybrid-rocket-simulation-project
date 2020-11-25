@@ -37,6 +37,7 @@ class FlightModel(Model):
   derived_propellantMass = 5
   derived_rocketMass = 6
   derived_totalMass = 7
+  derived_perceivedGravity = 8
 
   def computeDerivatives(self, t, state, derived, models):
     return [state[self.states_vx], state[self.states_vy], state[self.states_vz], derived[self.derived_ax], derived[self.derived_ay], derived[self.derived_az]]
@@ -97,6 +98,7 @@ class FlightModel(Model):
     gravityAcceleration = np.array([northwardGravity, 0, verticalGravity])
     
     initialAcceleration = dragAcceleration + thrustAcceleration + gravityAcceleration
+    perceivedGravity = np.linalg.norm(gravityAcceleration - thrustAcceleration + dragAcceleration)
 
     if onTower:
       accelerationProjection = np.dot(launchTowerVector, initialAcceleration)
@@ -108,6 +110,4 @@ class FlightModel(Model):
       acceleration = initialAcceleration
     
 
-      
-
-    return [acceleration[0], acceleration[1], acceleration[2], 1 if onTower else 0, mach, propellantMass, rocketMass, totalMass]
+    return [acceleration[0], acceleration[1], acceleration[2], 1 if onTower else 0, mach, propellantMass, rocketMass, totalMass, perceivedGravity]

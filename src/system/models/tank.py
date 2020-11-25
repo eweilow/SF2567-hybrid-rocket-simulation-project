@@ -1,5 +1,4 @@
 from models.base import Model
-from models.environment import EnvironmentModel
 import CoolProp.CoolProp as CP
 import scipy.optimize
 import numpy as np
@@ -121,13 +120,6 @@ class EquilibriumTankModel(Model):
   derived_liquidVolume = 13
   derived_outletPhase = 14
   derived_topPhase = 15
-  derived_energyFlowIntoGasPhaseFromTank = 16
-  derived_energyFlowIntoGasPartOfTankFromAmbient = 17
-  derived_energyFlowIntoLiquidPhaseFromTank = 18
-  derived_energyFlowIntoLiquidPartOfTankFromAmbient = 19
-  derived_energyFlowIntoGasPartOfTankFromLiquidPartOfTank = 20
-  derived_gasPartOfTankMass = 21
-  derived_liquidPartOfTankMass = 22
   
   def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
     mDot = extendDerivative(timeHistory, stateHistory[self.states_oxidizerMass])
@@ -142,7 +134,7 @@ class EquilibriumTankModel(Model):
 
   def computeSimplifiedDerivedVariables(self, args, time):
     mdot, pressure = args
-    ret = [None for i in range(23)]
+    ret = [None for i in range(16)]
     ret[self.derived_pressure] = pressure(time)
 
     return ret
@@ -169,6 +161,8 @@ class EquilibriumTankModel(Model):
     from models.injector import InjectorModel
     from models.combustion import CombustionModel
     from models.passiveVent import PassiveVentModel
+    from models.environment import EnvironmentModel
+    from models.flight import FlightModel
 
     massFlowTop = models["passiveVent"]["derived"][PassiveVentModel.derived_massFlow]
     massFlowOutlet = models["injector"]["derived"][InjectorModel.derived_massFlow]
@@ -178,15 +172,108 @@ class EquilibriumTankModel(Model):
 
     massFlow = -massFlowTop - massFlowOutlet
 
+    gasDensity = derived[self.derived_gasDensity]
     liquidDensity = derived[self.derived_liquidDensity]
-    energyFlowIntoGasPhaseFromTank = derived[self.derived_energyFlowIntoGasPhaseFromTank]
-    energyFlowIntoGasPartOfTankFromAmbient = derived[self.derived_energyFlowIntoGasPartOfTankFromAmbient]
-    energyFlowIntoLiquidPhaseFromTank = derived[self.derived_energyFlowIntoLiquidPhaseFromTank]
-    energyFlowIntoLiquidPartOfTankFromAmbient = derived[self.derived_energyFlowIntoLiquidPartOfTankFromAmbient]
-    energyFlowIntoGasPartOfTankFromLiquidPartOfTank = derived[self.derived_energyFlowIntoGasPartOfTankFromLiquidPartOfTank]
+    temperature = derived[self.derived_temperature]
+    liquidLevel = derived[self.derived_liquidLevel]
+
+    airThermalConductivity = models["environment"]["derived"][EnvironmentModel.derived_ambientThermalConductivity]
+    airPressure = models["environment"]["derived"][EnvironmentModel.derived_ambientPressure]
+    airTemperature = models["environment"]["derived"][EnvironmentModel.derived_ambientTemperature]
+    airViscosity = models["environment"]["derived"][EnvironmentModel.derived_ambientViscosity]
+    airDensity = models["environment"]["derived"][EnvironmentModel.derived_ambientDensity]
+
+    airCp = CP.PropsSI('CPMASS','T',airTemperature,'P',airPressure,'air')
+
+    gasThermalConductivity = gasThermalConductivityInterpolator(temperature)
+    gasCp = CP.PropsSI('CPMASS','T',temperature,'Q',1,'N2O')
+    gasViscosity = gasViscosityInterpolator(temperature)
+
+    liquidThermalConductivity = liquidThermalConductivityInterpolator(temperature)
+    liquidCp = CP.PropsSI('CPMASS','T',temperature,'Q',0,'N2O')
+    liquidViscosity = liquidViscosityInterpolator(temperature)
+    
+    gasWallHeight = (1 - liquidLevel) * assumptions.tankLength.get()
+    liquidWallHeight = liquidLevel * assumptions.tankLength.get()
 
     gasWallTemperature = state[self.states_gasWallTankTemperature]
     liquidWallTemperature = state[self.states_liquidWallTankTemperature]
+    
+    g = models["flight"]["derived"][FlightModel.derived_perceivedGravity]
+    energyFlowIntoGasPhaseFromTank = tankTransfer.tankWallHeatTransfer(
+      gasThermalConductivity,
+      gasCp,
+      gasViscosity,
+      gasDensity,
+      g,
+      temperature,
+      gasWallTemperature,
+      gasWallHeight,
+      assumptions.tankInsideRadius.get(),
+      2/5,
+      0.021
+    )
+
+    energyFlowIntoGasPartOfTankFromAmbient = tankTransfer.tankWallHeatTransfer(
+      airThermalConductivity,
+      airCp,
+      airViscosity,
+      airDensity,
+      g,
+      gasWallTemperature,
+      airTemperature,
+      gasWallHeight,
+      assumptions.tankInsideRadius.get(),
+      1/4,
+      0.59
+    )
+
+    energyFlowIntoLiquidPhaseFromTank = tankTransfer.tankWallHeatTransfer(
+      liquidThermalConductivity,
+      liquidCp,
+      liquidViscosity,
+      liquidDensity,
+      g,
+      temperature,
+      liquidWallTemperature,
+      liquidWallHeight,
+      assumptions.tankInsideRadius.get(),
+      2/5,
+      0.021
+    )
+
+    energyFlowIntoLiquidPartOfTankFromAmbient = tankTransfer.tankWallHeatTransfer(
+      airThermalConductivity,
+      airCp,
+      airViscosity,
+      airDensity,
+      g,
+      liquidWallTemperature,
+      airTemperature,
+      liquidWallHeight,
+      assumptions.tankInsideRadius.get(),
+      1/4,
+      0.59
+    )
+
+    energyFlowIntoGasPartOfTankFromLiquidPartOfTank = tankTransfer.tankWallHeatConduction(
+      assumptions.tankWallThermalConductivity.get(),
+      assumptions.tankInsideRadius.get(),
+      assumptions.tankInsideRadius.get() + assumptions.tankThickness.get(),
+      gasWallTemperature,
+      liquidWallTemperature,
+      assumptions.tankLength.get(),
+      liquidWallHeight
+    )
+
+    massPerLength = tankTransfer.massPerLength(
+      assumptions.tankInsideRadius.get(),
+      assumptions.tankInsideRadius.get() + assumptions.tankThickness.get(),
+      assumptions.tankWallDensity.get()
+    )
+
+    gasPartOfTankMass = gasWallHeight * massPerLength
+    liquidPartOfTankMass = liquidWallHeight * massPerLength
 
     # Replace with DAE
     liquidLevelChangeDerivative = tankTransfer.estimate_liquidLevelChangeDerivative(
@@ -205,8 +292,6 @@ class EquilibriumTankModel(Model):
       liquidWallTemperature
     )
 
-    gasPartOfTankMass = derived[self.derived_gasPartOfTankMass]
-    liquidPartOfTankMass = derived[self.derived_liquidPartOfTankMass]
     tankHeatCapacity = assumptions.tankWallSpecificHeatCapacity.get()
 
     dGasWallTemperature_dt = 1 / (gasPartOfTankMass * tankHeatCapacity) * (-energyFlowIntoGasPhaseFromTank + energyFlowIntoGasPartOfTankFromAmbient + energyFlowIntoGasPartOfTankFromLiquidPartOfTank - boundaryTransferFromLiquidToGasPartOfTank)
@@ -273,115 +358,9 @@ class EquilibriumTankModel(Model):
     hOutlet = CP.PropsSI('H','T',temperature,'Q',outletPhase,'N2O')
     hTop = CP.PropsSI('H','T',temperature,'Q',topPhase,'N2O')
 
-
-    airThermalConductivity = models["environment"]["derived"][EnvironmentModel.derived_ambientThermalConductivity]
-    airPressure = models["environment"]["derived"][EnvironmentModel.derived_ambientPressure]
-    airTemperature = models["environment"]["derived"][EnvironmentModel.derived_ambientTemperature]
-    airViscosity = models["environment"]["derived"][EnvironmentModel.derived_ambientViscosity]
-    airDensity = models["environment"]["derived"][EnvironmentModel.derived_ambientDensity]
-
-    airCp = CP.PropsSI('CPMASS','T',airTemperature,'P',airPressure,'air')
-
-    
-    gasThermalConductivity = gasThermalConductivityInterpolator(temperature)
-    gasCp = CP.PropsSI('CPMASS','T',temperature,'Q',1,'N2O')
-    gasViscosity = gasViscosityInterpolator(temperature)
-
-    liquidThermalConductivity = liquidThermalConductivityInterpolator(temperature)
-    liquidCp = CP.PropsSI('CPMASS','T',temperature,'Q',0,'N2O')
-    liquidViscosity = liquidViscosityInterpolator(temperature)
-    
-    gasWallHeight = (1 - liquidLevel) * assumptions.tankLength.get()
-    liquidWallHeight = liquidLevel * assumptions.tankLength.get()
-
-    gasWallTemperature = state[self.states_gasWallTankTemperature]
-    liquidWallTemperature = state[self.states_liquidWallTankTemperature]
-    
-    energyFlowIntoGasPhaseFromTank = tankTransfer.tankWallHeatTransfer(
-      gasThermalConductivity,
-      gasCp,
-      gasViscosity,
-      gasDensity,
-      9.81,
-      temperature,
-      gasWallTemperature,
-      gasWallHeight,
-      assumptions.tankInsideRadius.get(),
-      2/5,
-      0.021
-    )
-
-    energyFlowIntoGasPartOfTankFromAmbient = tankTransfer.tankWallHeatTransfer(
-      airThermalConductivity,
-      airCp,
-      airViscosity,
-      airDensity,
-      9.81,
-      gasWallTemperature,
-      airTemperature,
-      gasWallHeight,
-      assumptions.tankInsideRadius.get(),
-      1/4,
-      0.59
-    )
-
-    energyFlowIntoLiquidPhaseFromTank = tankTransfer.tankWallHeatTransfer(
-      liquidThermalConductivity,
-      liquidCp,
-      liquidViscosity,
-      liquidDensity,
-      9.81,
-      temperature,
-      liquidWallTemperature,
-      liquidWallHeight,
-      assumptions.tankInsideRadius.get(),
-      2/5,
-      0.021
-    )
-
-    energyFlowIntoLiquidPartOfTankFromAmbient = tankTransfer.tankWallHeatTransfer(
-      airThermalConductivity,
-      airCp,
-      airViscosity,
-      airDensity,
-      9.81,
-      liquidWallTemperature,
-      airTemperature,
-      liquidWallHeight,
-      assumptions.tankInsideRadius.get(),
-      1/4,
-      0.59
-    )
-
-    energyFlowIntoGasPartOfTankFromLiquidPartOfTank = tankTransfer.tankWallHeatConduction(
-      assumptions.tankWallThermalConductivity.get(),
-      assumptions.tankInsideRadius.get(),
-      assumptions.tankInsideRadius.get() + assumptions.tankThickness.get(),
-      gasWallTemperature,
-      liquidWallTemperature,
-      assumptions.tankLength.get(),
-      liquidWallHeight
-    )
-
-    massPerLength = tankTransfer.massPerLength(
-      assumptions.tankInsideRadius.get(),
-      assumptions.tankInsideRadius.get() + assumptions.tankThickness.get(),
-      assumptions.tankWallDensity.get()
-    )
-
-    gasWallMass = gasWallHeight * massPerLength
-    liquidWallMass = liquidWallHeight * massPerLength
-
     # dLiquidWallTemperature_dt = tankWallHeatTransfer()
     return [
-      pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase,
-      energyFlowIntoGasPhaseFromTank,
-      energyFlowIntoGasPartOfTankFromAmbient,
-      energyFlowIntoLiquidPhaseFromTank,
-      energyFlowIntoLiquidPartOfTankFromAmbient,
-      energyFlowIntoGasPartOfTankFromLiquidPartOfTank,
-      gasWallMass,
-      liquidWallMass
+      pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase
     ]
   
 class TankModel(EquilibriumTankModel):
