@@ -164,9 +164,12 @@ plt.xlim(t0, t1)
 
 nextSubplot()
 plt.plot(t, models["tank"]["derived"][TankModel.derived_temperature], '-')
+plt.plot(t, models["tank"]["state"][TankModel.states_gasWallTankTemperature], '-')
+plt.plot(t, models["tank"]["state"][TankModel.states_liquidWallTankTemperature], '-')
 plt.xlabel("Time (s)")
 plt.ylabel("Temperature (K)")
 plt.title("Tank temperature")
+plt.legend(("Oxidizer", "Tank wall (gas part)", "Tank wall (liquid part)"))
 plt.xlim(t0, t1)
 
 nextSubplot()

@@ -27,10 +27,21 @@ class Variable:
 
 
 initialAtmosphericPressure = Variable(101300)
+initialAtmosphericTemperature = Variable(293)
 
 tankVolume = Variable(35 * constants.Volume.liter)
+
 tankFillingGrade = Variable(0.9)
 tankFilledTemperature = Variable(293)
+tankInitialWallTemperature = Variable(293)
+
+tankLength = Variable(2 * constants.Lengths.m)
+tankInsideRadius = Variable(75 * constants.Lengths.mm)
+tankThickness = Variable(3 * constants.Lengths.mm)
+
+tankWallDensity = Variable(2700)
+tankWallThermalConductivity = Variable(205)
+tankWallSpecificHeatCapacity = Variable(900)
 
 tankPassiveVentDischargeCoefficient = Variable(0.7)
 tankPassiveVentDiameter = Variable(constants.Lengths.mm * 0.4)

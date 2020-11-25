@@ -3,6 +3,8 @@ printTime = True
 printFailedInjector = False
 
 
+enableTankWallHeatTransfer = True
+
 
 enableCeaLookup = True
 
