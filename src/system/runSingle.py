@@ -65,31 +65,17 @@ def solver(
       result[10] = ydot[10]
       result[N] = y[N] - derivative[0, 9]
       result[N+1] = y[N+1] - derivative[0, 10]
-      # print("{:10.6e} {:10.6e} {:10.6e} {:10.6e}".format(t, gamma, y[N], result[N]))
-      # result[9] = y[9] - gamma # Make variable 9 follow gamma.
 
-      # print(y[8], y[10], gamma, y[9], ydot[9])
-      # print(t, result[2], y[2])
-      # print(t, np.linalg.norm(result))
-      # print(", ".join(["{:9.2e}".format(result[i]) for i in range(N)]))
-      # print(", ".join(["{:9.2e}".format(ydot[i]) for i in range(N)]))
-      # print(", ".join(["{:9.2e}".format(derivative[0, i]) for i in range(N)]))
-      
       return 0
-    
-    daeSolver = "ida"
 
     rtol = 1e-4
     atol = 1e-4
 
     extra_vars = 2
-
     if extra_vars > 0:
       y0 = np.concatenate((y0, np.zeros(extra_vars)))
       yp0 = np.concatenate((yp0, np.zeros(extra_vars)))
-    
-    # algebraic_vars_idx = [] if extra_vars == 0 else list(range(N, N+extra_vars))
-    # algebraic_vars_idx.append(9)
+
     y0[9] = 0
     yp0[9] = 0
     y0[10] = 0
@@ -100,45 +86,23 @@ def solver(
     yp0[N+1] = 0
     algebraic_vars_idx = [6, 9, 10, N, N+1]
 
-    if daeSolver == "ida":
-      solver = dae('ida', residual, 
-        compute_initcond="yp0",
-        exclude_algvar_from_error=False,
-        algebraic_vars_idx=algebraic_vars_idx,
-        atol=atol,
-        rtol=rtol,
-        max_steps=500000
-      )
+    solver = dae('ida', residual, 
+      compute_initcond="yp0",
+      exclude_algvar_from_error=False,
+      algebraic_vars_idx=algebraic_vars_idx,
+      atol=atol,
+      rtol=rtol,
+      max_steps=500000
+    )
 
-      solution = solver.solve(times, y0, yp0)
+    solution = solver.solve(times, y0, yp0)
 
-      if not solution.flag == 0:
-        raise Exception("Flag is not 0 (it is " + str(solution.flag) + ")")
+    if not solution.flag == 0:
+      raise Exception("Flag is not 0 (it is " + str(solution.flag) + ")")
 
-      t = np.array(solution.values.t)
-      v = np.array(solution.values.y)
-      return np.transpose(t), np.transpose(v[:,0:N]), t[-1]
-    elif daeSolver == "lsodi":
-      solver = dae('lsodi', residual, 
-        compute_initcond="yp0",
-        method="adams",
-        order=12,
-        exclude_algvar_from_error=False,
-        adda_func=addafunc,
-        algebraic_vars_idx=algebraic_vars_idx,
-        atol=atol,
-        rtol=rtol,
-        max_steps=500000
-      )
-
-      solution = solver.solve(times, y0, yp0)
-
-      flag, t, v, *rest = solution
-      return np.transpose(t), np.transpose(v[:,0:N]), t[-1]
-    else:
-      raise Exception("Unknown solver")
-    # t, y = values
-    #return t, y, t[-1]
+    t = np.array(solution.values.t)
+    v = np.array(solution.values.y)
+    return np.transpose(t), np.transpose(v[:,0:N]), t[-1]
 
   sol = solve_ivp(
     sys, 
