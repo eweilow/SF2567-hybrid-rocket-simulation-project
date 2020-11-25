@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate
+import matplotlib.tri as tri
 
 from models.tank import TankModel
 from models.injector import InjectorModel
@@ -36,6 +37,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
 
   try:
     for i in range(N):
+      [t0, t1, t2] = np.load(f)
       t = np.load(f)
       models = {
         "tank": {
@@ -79,10 +81,11 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
       peakCCPressure = np.max(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
       meanCCPressure = np.mean(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
       velocity = np.linalg.norm([models["flight"]["state"][FlightModel.states_vx], models["flight"]["state"][FlightModel.states_vy], models["flight"]["state"][FlightModel.states_vz]], axis=0)
+      altitude = models["flight"]["state"][FlightModel.states_z]
 
       acceleration = np.linalg.norm([models["flight"]["derived"][FlightModel.derived_ax], models["flight"]["derived"][FlightModel.derived_ay], models["flight"]["derived"][FlightModel.derived_az]], axis=0)
-
-      totalImpulse = scipy.integrate.simps(models["nozzle"]["derived"][NozzleModel.derived_thrust], t) / 1000
+      
+      totalImpulse = scipy.integrate.trapz(models["nozzle"]["derived"][NozzleModel.derived_thrust], t) / 1000
 
       finalPortRadius = models["combustion"]["state"][CombustionModel.states_portRadius][-1] / constants.Lengths.mm
 
@@ -95,7 +98,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
       peakCCPressures.append(peakCCPressure)
       meanCCPressures.append(meanCCPressure)
       impulses.append(totalImpulse)
-      velocities.append(velocity[-1])
+      velocities.append(np.max(altitude))
       peakAccelerations.append(np.max(acceleration))
       meanAccelerations.append(np.mean(acceleration))
       finalPortRadii.append(finalPortRadius)
@@ -124,6 +127,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   plt.xlabel("Time (s)")
   plt.ylabel("Thrust (kN)")
   plt.margins(y=0.1)
+  plt.xlim(0, 20)
 
   plt.subplot(h,w,10)
   plt.title("Altitude for all sampled series")
@@ -136,6 +140,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   plt.xlabel("Time (s)")
   plt.ylabel("Tank pressure (bar)")
   plt.margins(y=0.1)
+  plt.xlim(0, 20)
 
   # plt.subplot(h,w,14)
   # plt.title("Tank temperature for all sampled series")
@@ -207,38 +212,70 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   plt.margins(y=0.1)
   plt.ylim(ymin=0)
 
-  plt.subplot(h,w,6)
-  plt.title("Total impulse with varying tank filling grade (%)")
-  plt.plot(fillingGrades, impulses, 'o', markersize=4)
-  plt.xlabel("Filling grade (%)")
-  plt.ylabel("Impulse (kNs)")
-  plt.margins(y=0.1)
-  plt.ylim(ymin=0)
+  triang = tri.Triangulation(fillingGrades, initialTemperatures)
+  interpolator = tri.LinearTriInterpolator(triang, impulses)
+  xi = np.linspace(85, 95, 150)
+  yi = np.linspace(0, 25, 150)
+  Xi, Yi = np.meshgrid(xi, yi)
+  zi = interpolator(Xi, Yi)
 
+  plt.subplot(h,w,6)
+  plt.title("Total impulse (kNs)")
+  CS = plt.contour(Xi, Yi, zi, levels=10, linewidths=0.5, colors='k')
+  plt.contourf(Xi, Yi, zi, levels=10, cmap="RdBu_r")
+  plt.colorbar()
+  plt.xlabel("Filling grade (%)")
+  plt.ylabel("Temperature (°C)")
+
+  # plt.subplot(h,w,6)
+  # plt.title("Total impulse with varying tank filling grade (%)")
+  # plt.plot(fillingGrades, impulses, 'o', markersize=4)
+  # plt.xlabel("Filling grade (%)")
+  # plt.ylabel("Impulse (kNs)")
+  # plt.margins(y=0.1)
+  # plt.ylim(ymin=0)
+
+  triang = tri.Triangulation(fillingGrades, initialTemperatures)
+  interpolator = tri.LinearTriInterpolator(triang, velocities / 1000)
+  xi = np.linspace(85, 95, 150)
+  yi = np.linspace(0, 25, 150)
+  Xi, Yi = np.meshgrid(xi, yi)
+  zi = interpolator(Xi, Yi)
+  
   plt.subplot(h,w,7)
-  plt.title("Total impulse with varying tank filling temperature")
-  plt.plot(initialTemperatures, impulses, 'o', markersize=4)
-  plt.xlabel("Temperature (°C)")
-  plt.ylabel("Impulse (kNs)")
-  plt.margins(y=0.1)
-  plt.ylim(ymin=0)
+  plt.title("Altitude (km)")
+  CS = plt.contour(Xi, Yi, zi, levels=10, linewidths=0.5, colors='k')
+  plt.contourf(Xi, Yi, zi, levels=10, cmap="RdBu_r")
+  plt.colorbar()
+  plt.xlabel("Filling grade (%)")
+  plt.ylabel("Temperature (°C)")
 
 
   plt.subplot(h,w,8)
-  plt.title("Final velocity with varying tank filling grade (%)")
-  plt.plot(fillingGrades, velocities, 'o', markersize=4)
-  plt.xlabel("Filling grade (%)")
-  plt.ylabel("Velocity (m/s)")
-  plt.margins(y=0.1)
-  plt.ylim(ymin=0)
+  plt.hist(velocities/1000, bins=20, density=True)
+  plt.ylabel("Probability")
+  plt.xlabel("Altitude (km)")
 
   plt.subplot(h,w,9)
-  plt.title("Final velocity with varying tank filling temperature")
-  plt.plot(initialTemperatures, velocities, 'o', markersize=4)
-  plt.xlabel("Temperature (°C)")
-  plt.ylabel("Velocity (m/s)")
-  plt.margins(y=0.1)
-  plt.ylim(ymin=0)
+  plt.hist(finalPortRadii, bins=20, density=True)
+  plt.ylabel("Probability")
+  plt.xlabel("Final port radius (mm)")
+#  plt.subplot(h,w,8)
+#  plt.title("Final velocity with varying tank filling grade (%)")
+#  plt.plot(fillingGrades, velocities, 'o', markersize=4)
+#  plt.xlabel("Filling grade (%)")
+#  plt.ylabel("Velocity (m/s)")
+#  plt.margins(y=0.1)
+#  plt.ylim(ymin=0)
+#
+
+#  plt.subplot(h,w,9)
+#  plt.title("Final velocity with varying tank filling temperature")
+#  plt.plot(initialTemperatures, velocities, 'o', markersize=4)
+#  plt.xlabel("Temperature (°C)")
+#  plt.ylabel("Velocity (m/s)")
+#  plt.margins(y=0.1)
+#  plt.ylim(ymin=0)
 
   plt.subplot(h,w,11)
   plt.title("Acceleration with varying tank filling grade (%)")

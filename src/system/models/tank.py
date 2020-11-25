@@ -99,7 +99,6 @@ class EquilibriumTankModel(Model):
   derived_topPhase = 15
 
   def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
-    print("mDot...")
     mDot = extendDerivative(timeHistory, stateHistory[self.states_oxidizerMass])
     pressure = extend(timeHistory, derivedVariablesHistory[self.derived_pressure])
     args = (mDot, pressure, )

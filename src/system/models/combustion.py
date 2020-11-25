@@ -39,7 +39,6 @@ class CombustionModel(Model):
   derived_oxidizerDensity = 14
 
   def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
-    print("rDot...")
     rDot = extend(timeHistory, derivedVariablesHistory[self.derived_rDot])
     pDot = extendDerivative(timeHistory, stateHistory[self.states_pressure])
     fuelMassDot = extendDerivative(timeHistory, stateHistory[self.states_fuelMass])

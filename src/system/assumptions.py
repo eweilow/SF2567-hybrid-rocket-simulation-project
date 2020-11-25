@@ -49,7 +49,6 @@ combustionEfficiency = Variable(0.9)
 fuelGrainAConstant = Variable(0.155e-3)
 fuelGrainNConstant = Variable(0.5)
 
-
 injectorHoleCount = Variable(38)
 injectorHoleDischargeCoefficient = Variable(0.83)
 injectorHoleDiameter = Variable(constants.Lengths.mm * 1.5)
@@ -90,17 +89,7 @@ dragPeakAroundMach = Variable(1.1)
 dragPeak = Variable(0.7)
 dragPeakSmoothingRadius = Variable(0.5)
 
-
-
-
-
 combustionEfficiencyStartupTransientTime = Variable(0.25)
 injectorStartupTransientTime = Variable(0.1)
-
-
-
-
-
-
 # aerospace-06-00075.pdf
 maximumRegressionRateAt = Variable(constants.Pressure.bar * 30)

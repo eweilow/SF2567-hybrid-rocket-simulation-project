@@ -22,7 +22,6 @@ class NozzleModel(Model):
   derived_specificImpulse = 2
   
   def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
-    print("thrust...")
     thrust = extend(timeHistory, derivedVariablesHistory[self.derived_thrust])
     args = (thrust, )
     mask = [None, None]
