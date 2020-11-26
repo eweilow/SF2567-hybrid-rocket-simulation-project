@@ -60,7 +60,7 @@ class CombustionModel(Model):
     initialPressure = assumptions.initialAtmosphericPressure.get()
 
     fuelVolume = (math.pow(assumptions.fuelPortMaximumRadius.get(), 2) * math.pi - math.pow(assumptions.fuelPortInitialRadius.get(), 2) * math.pi) * assumptions.fuelPortLength.get()
-    fuelMass = fuelVolume * assumptions.fuelDensity.get()
+    fuelMass = fuelVolume * assumptions.fuelDensitySolid.get()
 
     return [initialPressure, assumptions.fuelPortInitialRadius.get(), fuelMass, 0, 0]
 
@@ -108,7 +108,7 @@ class CombustionModel(Model):
     pressureFactor = math.sqrt(state[self.states_pressure] / assumptions.maximumRegressionRateAt.get())
 
     dPortRadius_dt = pressureFactor *assumptions.fuelGrainAConstant.get() * math.pow(oxidizerFlux, assumptions.fuelGrainNConstant.get())
-    fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * assumptions.fuelPortLength.get() * assumptions.fuelDensity.get()
+    fuelMassFlow = (math.pow(portRadius + dPortRadius_dt, 2) * math.pi - math.pow(portRadius, 2) * math.pi) * assumptions.fuelPortLength.get() * assumptions.fuelDensitySolid.get()
 
     ofRatio = injectorMassFlow / fuelMassFlow if fuelMassFlow > 1e-3 else 1000
 

@@ -6,6 +6,8 @@ from rocketcea.cea_obj_w_units import CEA_Obj as CEA_Obj_W_Units
 from rocketcea.blends import makeCardForNewTemperature
 import os, sys
 
+import assumptions
+
 import options
 
 # ugh https://stackoverflow.com/a/45669280
@@ -57,9 +59,15 @@ class NasaCEA:
     add_new_oxidizer('NITROUS_COOLPROP', card_str.format(oxidizerTemperature))
 
     card_str = """
-    fuel=C(gr) wt=0.02 t,K={:.2f}
-    fuel=SASOL907 wt=0.98 t,K={:.2f} h,kj/mol=-1438.200 rho,g/cc=0.720 C 50 H 102
-    """.format(fuelTemperature, fuelTemperature)
+    fuel=C(gr) wt={:.4f} t,K={:.2f}
+    fuel=SASOL907 wt={:.4f} t,K={:.2f} h,kj/mol={:.2f} rho,g/cc={:.3f} C 50 H 102
+    """.format(
+      assumptions.carbonBlackFraction.get(), 
+      fuelTemperature, 
+      1 - assumptions.carbonBlackFraction.get(),
+      fuelTemperature, 
+      assumptions.fuelEnthalpyOfFormation.get(), 
+      assumptions.fuelDensityLiquid.get() / 1e3)
     add_new_fuel('SASOLWAX907_CARBONBLACK', card_str)
 
     with hiddenPrints:

@@ -46,10 +46,14 @@ tankWallSpecificHeatCapacity = Variable(900)
 tankPassiveVentDischargeCoefficient = Variable(0.7)
 tankPassiveVentDiameter = Variable(constants.Lengths.mm * 0.4)
 
-fuelDensity = Variable(900)
+fuelDensitySolid = Variable(900) # page 23 - https://drive.google.com/file/d/1o-I2h1bSd9EcnG2-ctqdSLR2UjsFNFpF/view?usp=sharing
+fuelDensityLiquid = Variable(720) # page 23 - https://drive.google.com/file/d/1o-I2h1bSd9EcnG2-ctqdSLR2UjsFNFpF/view?usp=sharing
+fuelEnthalpyOfFormation = Variable(-1438.2) # page 23 - https://drive.google.com/file/d/1o-I2h1bSd9EcnG2-ctqdSLR2UjsFNFpF/view?usp=sharing
+
 fuelPortLength = Variable(33 * constants.Lengths.cm)
 fuelPortInitialRadius = Variable(constants.Lengths.mm * 25)
 fuelPortMaximumRadius = Variable(constants.Lengths.mm * 70)
+carbonBlackFraction = Variable(0.02)
 
 preCombustionChamberVolume = Variable(1 * constants.Volume.liter)
 postCombustionChamberVolume = Variable(1 * constants.Volume.liter)
