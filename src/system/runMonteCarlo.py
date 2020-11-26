@@ -14,6 +14,8 @@ from solve.states import applyModelStates, collectModelStates
 
 from multiprocessing import Process, Lock
 
+from runSingle import solver, runSystem
+
 def stochastic(fileLock, N, output):
   print('module name:', __name__)
   print('parent process:', os.getppid())
@@ -26,9 +28,11 @@ def stochastic(fileLock, N, output):
     assumptions.tankFillingGrade.randomizeInRange(0.85, 0.95)
     assumptions.tankFilledTemperature.randomizeInRange(273, 298)
 
-    assumptions.dragPeak.randomize(0.05)
-    assumptions.dragBaseLevel.randomize(0.05)
-    assumptions.dragPeakAroundMach.randomize(0.05)
+    assumptions.dragLevelAtPeak.randomize(0.05)
+    assumptions.dragLevelAtZero.randomize(0.05)
+    assumptions.dragLevelMachAsymptote.randomize(0.05)
+    assumptions.dragDropoffConstant.randomize(0.05)
+    assumptions.dragPeakMachNumber.randomize(0.05)
     assumptions.dragPeakSmoothingRadius.randomize(0.05)
     
     assumptions.combustionEfficiency.randomize(0.05)
@@ -80,64 +84,20 @@ def stochastic(fileLock, N, output):
     assumptions.combustionEfficiencyStartupTransientTime.randomize(0.1)
     assumptions.injectorStartupTransientTime.randomize(0.1)
     
-    models, system, events, initialState, hit_ground = makeODE()
-    maximumSolveTime = 40
     options.printTime = False
 
-    sol = solve_ivp(
-      system, 
-      [0, maximumSolveTime], 
-      initialState, 
-      'LSODA', 
-      t_eval=np.linspace(0, maximumSolveTime, 500), 
-      dense_output=False, 
-      events=events,
-      #max_step=1e-1
-    )
-
-    applyDerivedVariablesToResult(sol.t, sol.y, models)
-
-    # Recover state for different parts
-    for key in models:
-      models[key]["state"] = np.dot(models[key]["invMatrix"], sol.y)
-
-    models2, system2, events2, initialState2, hit_ground_event2 = makeODE(simplified = True, timeHistory=sol.t, previousModels=models)
-
-    sol2 = solve_ivp(
-      system2, 
-      [sol.t[-1], sol.t[-1] + 120], 
-      sol.y[:,-1], 
-      'LSODA', 
-      t_eval=np.linspace(sol.t[-1], sol.t[-1] + 120, 100), 
-      dense_output=False, 
-      events=(hit_ground_event2)
-      #max_step=1e-1
-    )
-    applyDerivedVariablesToResult(sol2.t, sol2.y, models2)
-
-    # Recover state for different parts
-    for key in models2:
-      models2[key]["state"] = np.dot(models2[key]["invMatrix"], sol2.y)
-
-      if not models[key]["simplifiedInit"] is None:
-        mask, args = models[key]["simplifiedInit"]
-        for i in range(len(mask)):
-          if mask[i] is None:
-            models2[key]["state"][i,:] = None
-
-
-    end = time.time()
-    print("Running simulation {:} took {:}".format(i, end - start))
+    cpuTime, timeRanges, times, modelsOutput = runSystem()
+    print("Running simulation took {:}".format(cpuTime))
     
     with fileLock:
       with open(output, 'ab') as f:
-        np.save(f, [0, sol.t[-1], sol2.t[-2]])
-        np.save(f, np.concatenate((sol.t, sol2.t)))
-        for key in models:
-          np.save(f, np.concatenate((models[key]["state"], models2[key]["state"]), axis=1))
-          np.save(f, np.concatenate((models[key]["derivedResult"], models2[key]["derivedResult"]), axis=1))
+        np.save(f, timeRanges)
+        np.save(f, times)
+        for key in modelsOutput:
+          np.save(f, modelsOutput[key]["state"])
+          np.save(f, modelsOutput[key]["derivedResult"])
 
-        np.save(f, [end - start])
+        np.save(f, cpuTime)
       # with open('/data/simulation.npy', 'wb') as f:
       #   np.save(f, sol.t)
       #   

@@ -1,17 +1,14 @@
-printTime = True
+printTime = False
 
 printFailedInjector = False
 
-
 enableTankWallHeatTransfer = True
-
 
 enableCeaLookup = True
 
 enableTankTemperatureInterpolation = True
 tankInterpolant = 5 # 5th order
 tankInterpolantPointCount = 1000
-
 
 solvingWithDAE = False
 

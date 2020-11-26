@@ -141,30 +141,50 @@ def recoverModelState(t, y, models):
         if mask[i] is None:
           models[key]["state"][i,:] = None
 
-start = time.time()
+def runSystem():
+  start = time.time()
 
-maximumSolveTime = 100
-# options.printTime = False
+  maximumSolveTime = 100
+  # options.printTime = False
 
-solveWithDAE = True
+  solveWithDAE = True
 
-models, system, events, initialState, hit_ground_event = makeODE()
-t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.05, events, useDae=solveWithDAE)
-recoverModelState(t, y, models)
+  models, system, events, initialState, hit_ground_event = makeODE()
+  t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.01, events, useDae=solveWithDAE)
+  recoverModelState(t, y, models)
 
-models2, system2, events2, initialState2, hit_ground_event2 = makeODE(simplified = True, timeHistory=t, previousModels=models)
-t2, y2, tend2 = solver(system2, y[:,-1], tend, tend + 240, 0.1, events=(hit_ground_event2), useDae=False)
-applyDerivedVariablesToResult(t2, y2, models2)
-recoverModelState(t2, y2, models2)
+  models2, system2, events2, initialState2, hit_ground_event2 = makeODE(simplified = True, timeHistory=t, previousModels=models)
+  t2, y2, tend2 = solver(system2, y[:,-1], tend, tend + 240, 0.25, events=(hit_ground_event2), useDae=False)
+  applyDerivedVariablesToResult(t2, y2, models2)
+  recoverModelState(t2, y2, models2)
 
-end = time.time()
-print("Running simulation took {:}".format(end - start))
+  end = time.time()
 
-with open("/data/simulation.npy", 'wb') as f:
-  np.save(f, [0, t[-1], t2[-2]])
-  np.save(f, np.concatenate((t, t2)))
+  cpuTime = end - start
+
+  timeRanges = [0, t[-1], t2[-2]]
+  times = np.concatenate((t, t2))
+  
+  modelsOutput = {}
   for key in models:
-    np.save(f, np.concatenate((models[key]["state"], models2[key]["state"]), axis=1))
-    np.save(f, np.concatenate((models[key]["derivedResult"], models2[key]["derivedResult"]), axis=1))
+    modelsOutput[key] = {
+      "state": np.concatenate((models[key]["state"], models2[key]["state"]), axis=1),
+      "derivedResult": np.concatenate((models[key]["derivedResult"], models2[key]["derivedResult"]), axis=1),
+    }
 
-  np.save(f, [end - start])
+  return cpuTime, timeRanges, times, modelsOutput
+
+if __name__ == '__main__':
+  options.printTime = True
+
+  cpuTime, timeRanges, times, modelsOutput = runSystem()
+  print("Running simulation took {:}".format(cpuTime))
+
+  with open("/data/simulation.npy", 'wb') as f:
+    np.save(f, timeRanges)
+    np.save(f, times)
+    for key in modelsOutput:
+      np.save(f, modelsOutput[key]["state"])
+      np.save(f, modelsOutput[key]["derivedResult"])
+
+    np.save(f, cpuTime)

@@ -15,6 +15,9 @@ def tankWallHeatTransfer(
   n = 2/5,
   c = 0.021
 ):
+  if tankWallHeight <= 1e-6:
+    return 0
+
   temperatureDifference = wallTemperature - fluidTemperature
   tankWallArea = tankWallHeight * 2 * tankWallRadius * math.pi
   
@@ -43,6 +46,9 @@ def tankWallHeatConduction(
   bottomPhaseCenter = bottomPhaseLength / 2
 
   phaseDistance = topPhaseCenter - bottomPhaseCenter
+
+  if phaseDistance < 1e-6:
+    return 0
 
   return thermalConductivity * temperatureDifference * tankWallCrossSectionalArea / phaseDistance
 

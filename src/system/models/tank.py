@@ -305,8 +305,8 @@ class EquilibriumTankModel(Model):
 
     tankHeatCapacity = assumptions.tankWallSpecificHeatCapacity.get()
 
-    dGasWallTemperature_dt = 1 / (gasPartOfTankMass * tankHeatCapacity) * (-energyFlowIntoGasPhaseFromTank + energyFlowIntoGasPartOfTankFromAmbient + energyFlowIntoGasPartOfTankFromLiquidPartOfTank - boundaryTransferFromLiquidToGasPartOfTank)
-    dLiquidWallTemperature_dt = 1 / (liquidPartOfTankMass * tankHeatCapacity) * (-energyFlowIntoLiquidPhaseFromTank + energyFlowIntoLiquidPartOfTankFromAmbient - energyFlowIntoGasPartOfTankFromLiquidPartOfTank + boundaryTransferFromLiquidToGasPartOfTank)
+    dGasWallTemperature_dt = 1 / (gasPartOfTankMass * tankHeatCapacity) * (-energyFlowIntoGasPhaseFromTank + energyFlowIntoGasPartOfTankFromAmbient + energyFlowIntoGasPartOfTankFromLiquidPartOfTank - boundaryTransferFromLiquidToGasPartOfTank) if gasPartOfTankMass > 1e-6 else 0
+    dLiquidWallTemperature_dt = 1 / (liquidPartOfTankMass * tankHeatCapacity) * (-energyFlowIntoLiquidPhaseFromTank + energyFlowIntoLiquidPartOfTankFromAmbient - energyFlowIntoGasPartOfTankFromLiquidPartOfTank + boundaryTransferFromLiquidToGasPartOfTank) if liquidPartOfTankMass > 1e-6 else 0
 
     energyFlow = -massFlowOutlet * hOutlet - massFlowTop * hTop + energyFlowIntoGasPhaseFromTank + energyFlowIntoLiquidPhaseFromTank
     
