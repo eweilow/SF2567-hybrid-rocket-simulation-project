@@ -61,10 +61,32 @@ def makeODE(simplified = False, timeHistory = None, previousModels = None):
     return fullSystem
 
 
-  def no_oxidizer_mass(t, y): 
+  def low_oxidizer_temperature(t, y): 
+    applyModelStates(models, y)
+    # Set up derived variables
+    visited = []
+    for key in models:
+      visited = recurseModelDependencies(t, models[key], 0, models, visited)
+
     models["tank"]["state"] = np.dot(models["tank"]["invMatrix"], y)
-    return models["tank"]["state"][TankModel.states_oxidizerMass] - 0.25
-  no_oxidizer_mass.terminal = True
+    return models["tank"]["derived"][TankModel.derived_temperature] - 220
+  low_oxidizer_temperature.terminal = True
+
+  def low_oxidizer_pressure(t, y): 
+    applyModelStates(models, y)
+    # Set up derived variables
+    visited = []
+    for key in models:
+      visited = recurseModelDependencies(t, models[key], 0, models, visited)
+
+    models["tank"]["state"] = np.dot(models["tank"]["invMatrix"], y)
+    return models["tank"]["derived"][TankModel.derived_pressure] - 10 * constants.Pressure.bar
+  low_oxidizer_pressure.terminal = True
+
+#  def no_oxidizer_mass(t, y): 
+#    models["tank"]["state"] = np.dot(models["tank"]["invMatrix"], y)
+#    return models["tank"]["state"][TankModel.states_oxidizerMass] - 0.25
+#  no_oxidizer_mass.terminal = True
 
   def no_fuel_mass(t, y): 
     models["combustion"]["state"] = np.dot(models["combustion"]["invMatrix"], y)
@@ -76,27 +98,28 @@ def makeODE(simplified = False, timeHistory = None, previousModels = None):
     return models["tank"]["state"][TankModel.states_totalEnergy]
   no_oxidizer_energy.terminal = True
 
-  def no_chamber_pressure(t, y): 
-    applyModelStates(models, y)
-    # Set up derived variables
-    visited = []
-    for key in models:
-      visited = recurseModelDependencies(t, models[key], 0, models, visited)
+#  def no_chamber_pressure(t, y): 
+#    applyModelStates(models, y)
+#    # Set up derived variables
+#    visited = []
+#    for key in models:
+#      visited = recurseModelDependencies(t, models[key], 0, models, visited)
+#
+#    models["combustion"]["state"] = np.dot(models["combustion"]["invMatrix"], y)
+#    return models["combustion"]["state"][CombustionModel.states_pressure] - 0.9 * constants.Pressure.bar
 
-    models["combustion"]["state"] = np.dot(models["combustion"]["invMatrix"], y)
-    return models["combustion"]["state"][CombustionModel.states_pressure] - 5 * constants.Pressure.bar
-
-  no_chamber_pressure.terminal = True
-  no_chamber_pressure.direction = -1
+#  no_chamber_pressure.terminal = True
+#  no_chamber_pressure.direction = -1
 
   def hit_ground_event(t, y): 
     models["flight"]["state"] = np.dot(models["flight"]["invMatrix"], y)
-    return models["flight"]["state"][FlightModel.states_z] + 0.01
+    return models["flight"]["state"][FlightModel.states_z] + 2
 
   hit_ground_event.terminal = True
   hit_ground_event.direction = -1
 
-  events = (no_oxidizer_mass, no_fuel_mass, no_oxidizer_energy, no_chamber_pressure, hit_ground_event)
+  # events = (no_oxidizer_mass, no_fuel_mass, no_oxidizer_energy, no_chamber_pressure, hit_ground_event)
+  events = (low_oxidizer_temperature, low_oxidizer_pressure, no_fuel_mass, no_oxidizer_energy, hit_ground_event)
 
   initialState = collectModelStates(models, fullSystemLength)
 

@@ -86,19 +86,32 @@ def solver(
     yp0[N+1] = 0
     algebraic_vars_idx = [6, 9, 10, N, N+1]
 
+    def root_fn(t, y, yp, result):
+      for i in range(len(events)):
+        result[i] = events[i](t, y[0:N])
+
+      # print(t, result)
+
     solver = dae('ida', residual, 
       compute_initcond="yp0",
       exclude_algvar_from_error=False,
       algebraic_vars_idx=algebraic_vars_idx,
       atol=atol,
       rtol=rtol,
-      max_steps=500000
+      max_steps=500000,
+      rootfn=root_fn,
+      nr_rootfns=len(events)
     )
+
 
     solution = solver.solve(times, y0, yp0)
 
-    if not solution.flag == 0:
-      raise Exception("Flag is not 0 (it is " + str(solution.flag) + ")")
+    print(solution.message)
+
+    # 0 is done
+    # 2 is that it hit root
+    if not (solution.flag == 0 or solution.flag == 2):
+      raise Exception("Flag is not 0 or 2 (it is " + str(solution.flag) + ")")
 
     t = np.array(solution.values.t)
     v = np.array(solution.values.y)
@@ -130,7 +143,7 @@ def recoverModelState(t, y, models):
 
 start = time.time()
 
-maximumSolveTime = 10
+maximumSolveTime = 25
 options.printTime = False
 
 solveWithDAE = True
