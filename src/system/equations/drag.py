@@ -1,21 +1,31 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from equations.falloffs import sigmoid
 
 import assumptions
 
 def getDragCoefficient(mach):
-  if mach > 10:
-    mach = 10
+  # José Carlos Santos (https://math.stackexchange.com/users/446262/jos%c3%a9-carlos-santos), How to find the exponential curve between two generic points?, URL (version: 2020-07-21): https://math.stackexchange.com/q/3276964
+  c = assumptions.dragPeakMachNumber.get()
 
-  a = 0.9
-  b = -0.6
-  c = assumptions.dragPeakAroundMach.get()
+  Cleft = assumptions.dragLevelAtZero.get()
+  Cright = assumptions.dragLevelMachAsymptote.get()
+  Cpeak = assumptions.dragLevelAtPeak.get()
 
-  C = assumptions.dragBaseLevel.get()
-  A = assumptions.dragPeak.get() - C
-  B = A
-  
-  baseEdge = sigmoid(mach, c, assumptions.dragPeakSmoothingRadius.get())
-  return C  + (1.0 - baseEdge) * A*np.exp(a*(mach - c)) + baseEdge * B*np.exp(b*(mach - c))
+  leftRateConstant = 2
+  rightRateConstant = assumptions.dragDropoffConstant.get()
+
+  transformedLeftMach = leftRateConstant*(mach - c) / c
+  transformedRightMach = -rightRateConstant*(mach - c) / c
+
+  yValueAtLeft = np.exp(-leftRateConstant)
+  yValueAtPeak = 1
+  transformedLeftY = (np.exp(transformedLeftMach) - yValueAtLeft) / (yValueAtPeak - yValueAtLeft)
+  leftDragCoefficient = Cleft + transformedLeftY * (Cpeak - Cleft)
+
+  transformedRightY = np.exp(transformedRightMach) / yValueAtPeak
+  rightDragCoefficient = Cright + transformedRightY * (Cpeak - Cright)
+
+  leftRightFactor = sigmoid(mach, c, assumptions.dragPeakSmoothingRadius.get())
+
+  return (1 - leftRightFactor) * leftDragCoefficient + (leftRightFactor) * rightDragCoefficient

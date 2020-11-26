@@ -95,9 +95,11 @@ rocketFuelCasingMass = Variable(0.3)
 rocketEngineMass = Variable(10.9)
 
 
-dragBaseLevel = Variable(0.2)
-dragPeakAroundMach = Variable(1.1)
-dragPeak = Variable(0.7)
+dragLevelAtZero = Variable(0.5)
+dragLevelAtPeak = Variable(0.7)
+dragPeakMachNumber = Variable(1.1)
+dragLevelMachAsymptote = Variable(0.2)
+dragDropoffConstant = Variable(0.6)
 dragPeakSmoothingRadius = Variable(0.5)
 
 combustionEfficiencyStartupTransientTime = Variable(0.25)
