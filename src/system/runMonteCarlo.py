@@ -32,7 +32,10 @@ def stochastic(fileLock, N, output):
     assumptions.dragPeakSmoothingRadius.randomize(0.05)
     
     assumptions.combustionEfficiency.randomize(0.05)
-    assumptions.fuelDensity.randomize(0.05)
+    assumptions.fuelDensitySolid.randomize(0.05)
+    assumptions.fuelDensityLiquid.randomize(0.05)
+    assumptions.fuelEnthalpyOfFormation.randomize(0.01)
+    assumptions.carbonBlackFraction.randomize(0.05)
     assumptions.fuelGrainAConstant.randomize(0.001)
     assumptions.fuelGrainNConstant.randomize(0.001)
     assumptions.fuelPortInitialRadius.randomize(0.001)
@@ -57,8 +60,6 @@ def stochastic(fileLock, N, output):
     assumptions.preCombustionChamberVolume.randomize(0.1)
     assumptions.postCombustionChamberVolume.randomize(0.1)
 
-    assumptions.tankVolume.randomize(0.01)
-
     assumptions.tankPassiveVentDischargeCoefficient.randomize(0.05)
     assumptions.tankPassiveVentDiameter.randomize(0.01)
 
@@ -70,7 +71,11 @@ def stochastic(fileLock, N, output):
     assumptions.rocketBodyMass.randomize(0.05)
     assumptions.rocketOxidizerTankMass.randomize(0.05)
     assumptions.rocketFuelCasingMass.randomize(0.05)
-    assumptions.rocketEngineMass.randomize(0.05)
+    assumptions.kastrullMass.randomize(0.05)
+    assumptions.fastenersMass.randomize(0.05)
+    assumptions.injectorMass.randomize(0.05)
+    assumptions.chamberWallsMass.randomize(0.05)
+    assumptions.nozzleMass.randomize(0.05)
 
     assumptions.combustionEfficiencyStartupTransientTime.randomize(0.1)
     assumptions.injectorStartupTransientTime.randomize(0.1)

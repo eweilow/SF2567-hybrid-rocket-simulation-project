@@ -1,4 +1,5 @@
 import random
+import math
 from utils import constants
 
 variables = []
@@ -25,23 +26,29 @@ class Variable:
     for variable in variables:
       variable.set(variable._baseValue)
 
+class DerivedVariable:
+  def __init__(self, compute):
+    self.compute = compute
+
+  def get(self):
+    return self.compute()
 
 initialAtmosphericPressure = Variable(101300)
 initialAtmosphericTemperature = Variable(293)
 
-tankVolume = Variable(35 * constants.Volume.liter)
-
-tankFillingGrade = Variable(0.9)
+tankFillingGrade = Variable(0.95)
 tankFilledTemperature = Variable(293)
 tankInitialWallTemperature = Variable(293)
 
-tankLength = Variable(2 * constants.Lengths.m)
+tankLength = Variable(1.87 * constants.Lengths.m)
 tankInsideRadius = Variable(75 * constants.Lengths.mm)
-tankThickness = Variable(3 * constants.Lengths.mm)
+tankThickness = Variable(3.5 * constants.Lengths.mm)
 
-tankWallDensity = Variable(2700)
-tankWallThermalConductivity = Variable(205)
-tankWallSpecificHeatCapacity = Variable(900)
+tankVolume = DerivedVariable(lambda: tankLength.get() * math.pow(tankInsideRadius.get(), 2) * math.pi)
+
+tankWallDensity = Variable(2700) # http://www.aalco.co.uk/datasheets/Aluminium-Alloy-6082-T6T651-Plate_148.ashx
+tankWallThermalConductivity = Variable(180) # http://www.aalco.co.uk/datasheets/Aluminium-Alloy-6082-T6T651-Plate_148.ashx
+tankWallSpecificHeatCapacity = Variable(890) # https://matmatch.com/materials/mitf374-bs-en-573-3-grade-6082-t6
 
 tankPassiveVentDischargeCoefficient = Variable(0.7)
 tankPassiveVentDiameter = Variable(constants.Lengths.mm * 0.4)
@@ -60,14 +67,12 @@ postCombustionChamberVolume = Variable(1 * constants.Volume.liter)
 
 combustionEfficiency = Variable(0.9)
 
-#http://www.scielo.org.za/pdf/rd/v33/05.pdf
-fuelGrainAConstant = Variable(0.155e-3)
-fuelGrainNConstant = Variable(0.5)
+fuelGrainAConstant = Variable(0.155e-3) # 0.132e-3 to 0.155e-3. page 37 - https://drive.google.com/drive/folders/1zWr8Qbn6sgkfRpe2k6DzyGvg2Ws2mxZb
+fuelGrainNConstant = Variable(0.5) # 0.555 to 0.5 page 37 - https://drive.google.com/drive/folders/1zWr8Qbn6sgkfRpe2k6DzyGvg2Ws2mxZb
 
 injectorHoleCount = Variable(38)
 injectorHoleDischargeCoefficient = Variable(0.83)
 injectorHoleDiameter = Variable(constants.Lengths.mm * 1.5)
-
 
 nozzleEfficiency = Variable(0.9)
 nozzleExhaustRadius = Variable(constants.Lengths.mm * 44.777)
@@ -76,27 +81,32 @@ nozzleErosionConstant = Variable(constants.Lengths.mm * 0) # Set to 0 for now
 nozzleErosionStart = Variable(10)
 nozzleErosionStartRadius = Variable(3)
 
-
 launchLatitudeDegrees = Variable(61)
 launchLongitudeDegrees = Variable(14)
 launchSeaLevelAltitude = Variable(10000)
 
 
 launchTowerLength = Variable(10)
-launchTowerVerticalAngle = Variable(88) # 90 degrees = straight upward
+launchTowerVerticalAngle = Variable(80) # 90 degrees = straight upward
 launchTowerDirectionAngle = Variable(0) # 0 degrees = due north, 90 degrees = due west
 
 
 rocketBodyDiameter = Variable(16 * constants.Lengths.cm)
 
-rocketOnBoardRecoverySystemMass = Variable(10)
+rocketOnBoardRecoverySystemMass = Variable(6)
 rocketOnBoardElectronicsMass = Variable(2.3)
-rocketPayloadMass = Variable(10)
-rocketBodyMass = Variable(7)
+rocketPayloadMass = Variable(2)
+rocketBodyMass = Variable(10)
 
 rocketOxidizerTankMass = Variable(6.7)
 rocketFuelCasingMass = Variable(0.3)
-rocketEngineMass = Variable(10.9)
+
+kastrullMass = Variable(3.3)
+fastenersMass = Variable(0.1)
+injectorMass = Variable(1.1)
+chamberWallsMass = Variable(3.6)
+nozzleMass = Variable(3.8)
+rocketEngineMass = DerivedVariable(lambda: kastrullMass.get() + fastenersMass.get() + injectorMass.get() + chamberWallsMass.get() + nozzleMass.get())
 
 
 dragLevelAtZero = Variable(0.5)
