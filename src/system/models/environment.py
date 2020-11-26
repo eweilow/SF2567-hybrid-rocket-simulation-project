@@ -1,5 +1,6 @@
 from models.base import Model
 import math
+import CoolProp.CoolProp as CP
 import numpy as np
 import scipy.interpolate
 
@@ -29,6 +30,10 @@ class EnvironmentModel(Model):
   derived_ambientThermalConductivity = 6
   derived_ambientTemperature = 7
 
+  derived_dynamicPressure = 8
+  derived_stagnationPressure = 9
+  derived_stagnationTemperature = 10
+
   def initializeState(self):
     init()
 
@@ -53,17 +58,32 @@ class EnvironmentModel(Model):
     pressure = atmosphere.pressure[0]
     density = atmosphere.density[0]
     speedOfSound = atmosphere.speed_of_sound[0]
+    temperature = atmosphere.temperature[0]
 
     pressure = pressure * (assumptions.initialAtmosphericPressure.get() / seaLevelPressure)
     density = density * (assumptions.initialAtmosphericPressure.get() / seaLevelPressure)
     speedOfSound = speedOfSound * (assumptions.initialAtmosphericPressure.get() / seaLevelPressure)
-    temperature = speedOfSound * (assumptions.initialAtmosphericTemperature.get() / seaLevelTemperature)
+    temperature = temperature * (assumptions.initialAtmosphericTemperature.get() / seaLevelTemperature)
     viscosity = atmosphere.dynamic_viscosity[0]
     thermalConductivity = atmosphere.thermal_conductivity[0]
+
+    velocityThroughAir = np.linalg.norm([models["flight"]["state"][FlightModel.states_vx], models["flight"]["state"][FlightModel.states_vy], models["flight"]["state"][FlightModel.states_vz]])
+    dynamicPressure = 0.5 * density * velocityThroughAir * velocityThroughAir
+
+    stagnationPressure = pressure - dynamicPressure
+
+    airCp = CP.PropsSI('CPMASS','T',temperature,'P',pressure,'air')
+    airCv = CP.PropsSI('CVMASS','T',temperature,'P',pressure,'air')
+    airGamma = airCp / airCv
+
+    mach = velocityThroughAir / speedOfSound
+
+    # This is the adiabatic stagnation temperature on the surface of the rocket
+    stagnationTemperature = temperature * (1 + (airGamma - 1) / 2 * mach * mach)
 
     launchLatitudeRadians = assumptions.launchLatitudeDegrees.get() / 180 * math.pi
 
     # todo for future: take into account the present latitude, not just the starting one
     verticalGravity, northwardGravity = earth.get_analytic_gravity(launchLatitudeRadians, assumptions.launchSeaLevelAltitude.get())
 
-    return [pressure, density, speedOfSound, verticalGravity, northwardGravity, viscosity, thermalConductivity, temperature]
+    return [pressure, density, speedOfSound, verticalGravity, northwardGravity, viscosity, thermalConductivity, temperature, dynamicPressure, stagnationPressure, stagnationTemperature]

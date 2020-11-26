@@ -2,6 +2,7 @@ import math
 
 # https://web.stanford.edu/~cantwell/Recent_publications/Zimmerman_et_al_AIAA_2013-4045.pdf
 def tankWallHeatTransfer(
+  fluidVolumetricThermalExpansionCoefficient,
   fluidThermalConductivity,
   fluidCp,
   fluidMu,
@@ -14,12 +15,10 @@ def tankWallHeatTransfer(
   n = 2/5,
   c = 0.021
 ):
-  beta = 1 / fluidTemperature # Assumption due to ideal gas
-
   temperatureDifference = wallTemperature - fluidTemperature
   tankWallArea = tankWallHeight * 2 * tankWallRadius * math.pi
   
-  Ra = fluidCp * fluidDensity * fluidDensity * acceleration * beta * abs(temperatureDifference) * pow(tankWallHeight, 3) / (fluidMu * fluidThermalConductivity)
+  Ra = fluidCp * fluidDensity * fluidDensity * acceleration * fluidVolumetricThermalExpansionCoefficient * abs(temperatureDifference) * pow(tankWallHeight, 3) / (fluidMu * fluidThermalConductivity)
   Nu = c * pow(Ra, n)
   heatTransferCoefficient = Nu * fluidThermalConductivity / tankWallHeight
 

@@ -175,11 +175,12 @@ class EquilibriumTankModel(Model):
     gasDensity = derived[self.derived_gasDensity]
     liquidDensity = derived[self.derived_liquidDensity]
     temperature = derived[self.derived_temperature]
+    pressure = derived[self.derived_pressure]
     liquidLevel = derived[self.derived_liquidLevel]
 
     airThermalConductivity = models["environment"]["derived"][EnvironmentModel.derived_ambientThermalConductivity]
     airPressure = models["environment"]["derived"][EnvironmentModel.derived_ambientPressure]
-    airTemperature = models["environment"]["derived"][EnvironmentModel.derived_ambientTemperature]
+    airTemperature = models["environment"]["derived"][EnvironmentModel.derived_stagnationTemperature]
     airViscosity = models["environment"]["derived"][EnvironmentModel.derived_ambientViscosity]
     airDensity = models["environment"]["derived"][EnvironmentModel.derived_ambientDensity]
 
@@ -198,9 +199,16 @@ class EquilibriumTankModel(Model):
 
     gasWallTemperature = state[self.states_gasWallTankTemperature]
     liquidWallTemperature = state[self.states_liquidWallTankTemperature]
-    
+
+    # Using isobaric_expansion_coefficient resulted in results that is closest to the ideal gas assumption 1 / temperature.
+    # Using isentropic_expansion_coefficient lead to results that were far off...
+    gasVolumetricThermalExpansionCoefficient = CP.PropsSI("isobaric_expansion_coefficient", "T", temperature, "Q", 1, "N2O")
+    liquidVolumetricThermalExpansionCoefficient = CP.PropsSI("isobaric_expansion_coefficient", "T", temperature, "Q", 0, "N2O")
+    airVolumetricThermalExpansionCoefficient = CP.PropsSI("isobaric_expansion_coefficient", "T", temperature, "P", pressure, "air")
+
     g = models["flight"]["derived"][FlightModel.derived_perceivedGravity]
     energyFlowIntoGasPhaseFromTank = tankTransfer.tankWallHeatTransfer(
+      gasVolumetricThermalExpansionCoefficient,
       gasThermalConductivity,
       gasCp,
       gasViscosity,
@@ -215,6 +223,7 @@ class EquilibriumTankModel(Model):
     )
 
     energyFlowIntoGasPartOfTankFromAmbient = tankTransfer.tankWallHeatTransfer(
+      airVolumetricThermalExpansionCoefficient,
       airThermalConductivity,
       airCp,
       airViscosity,
@@ -229,6 +238,7 @@ class EquilibriumTankModel(Model):
     )
 
     energyFlowIntoLiquidPhaseFromTank = tankTransfer.tankWallHeatTransfer(
+      liquidVolumetricThermalExpansionCoefficient,
       liquidThermalConductivity,
       liquidCp,
       liquidViscosity,
@@ -243,6 +253,7 @@ class EquilibriumTankModel(Model):
     )
 
     energyFlowIntoLiquidPartOfTankFromAmbient = tankTransfer.tankWallHeatTransfer(
+      airVolumetricThermalExpansionCoefficient,
       airThermalConductivity,
       airCp,
       airViscosity,
