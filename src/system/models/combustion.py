@@ -119,9 +119,10 @@ class CombustionModel(Model):
     _, Cp, molecularMass, cStar, temperature, gamma, density, thrustCoefficient, exhaustPressure, oxidizerDensity = self.cea.getPerformanceParameters(state[self.states_pressure], ambientPressure, models["tank"]["derived"][TankModel.derived_temperature], areaRatio, ofRatio)
     
     CpT = temperature * Cp
-    cStar = cStar * assumptions.combustionEfficiency.get()
+    cStar *= assumptions.combustionEfficiency.get()
     startupTransient = combustionEfficiencyTransient(t)
-    cStar = cStar * startupTransient
+    cStar *= startupTransient
+    fuelMassFlow *= startupTransient
 
     volume = assumptions.preCombustionChamberVolume.get() + assumptions.postCombustionChamberVolume.get() + portArea * assumptions.fuelPortLength.get()
 

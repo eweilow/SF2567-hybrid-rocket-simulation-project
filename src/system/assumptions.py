@@ -33,6 +33,17 @@ class DerivedVariable:
   def get(self):
     return self.compute()
 
+
+
+# The "radius" in terms of liquid level [0..1] where the tank outlet thermodynamic phase "smoothly" transitions from liquid to gas.
+# Unfortunately this is an empirical constant which have to be determined after a test.
+tankOutletLiquidGasTransferRadius = Variable(0.01)
+
+# The "radius" in terms of liquid level [0..1] where the tank top vent thermodynamic phase "smoothly" transitions from gas to liquid.
+# Unfortunately this is an empirical constant.
+tankTopVentLiquidGasTransferRadius = Variable(0.01)
+
+
 initialAtmosphericPressure = Variable(101300)
 initialAtmosphericTemperature = Variable(293)
 
@@ -70,7 +81,7 @@ combustionEfficiency = Variable(0.9)
 fuelGrainAConstant = Variable(0.155e-3) # 0.132e-3 to 0.155e-3. page 37 - https://drive.google.com/drive/folders/1zWr8Qbn6sgkfRpe2k6DzyGvg2Ws2mxZb
 fuelGrainNConstant = Variable(0.5) # 0.555 to 0.5 page 37 - https://drive.google.com/drive/folders/1zWr8Qbn6sgkfRpe2k6DzyGvg2Ws2mxZb
 
-injectorHoleCount = Variable(38)
+injectorHoleCount = Variable(30)
 injectorHoleDischargeCoefficient = Variable(0.83)
 injectorHoleDiameter = Variable(constants.Lengths.mm * 1.5)
 
@@ -117,6 +128,8 @@ dragDropoffConstant = Variable(0.6)
 dragPeakSmoothingRadius = Variable(0.5)
 
 combustionEfficiencyStartupTransientTime = Variable(0.25)
+combustionEfficiencyStartupDelay = Variable(0)
 injectorStartupTransientTime = Variable(0.1)
+injectorStartupDelay = Variable(0)
 # aerospace-06-00075.pdf
 maximumRegressionRateAt = Variable(constants.Pressure.bar * 30)

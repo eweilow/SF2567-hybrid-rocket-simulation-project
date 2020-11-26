@@ -143,8 +143,8 @@ def recoverModelState(t, y, models):
 
 start = time.time()
 
-maximumSolveTime = 25
-options.printTime = False
+maximumSolveTime = 100
+# options.printTime = False
 
 solveWithDAE = True
 
