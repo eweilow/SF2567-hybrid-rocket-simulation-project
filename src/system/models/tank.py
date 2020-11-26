@@ -298,6 +298,34 @@ class EquilibriumTankModel(Model):
     dLiquidWallTemperature_dt = 1 / (liquidPartOfTankMass * tankHeatCapacity) * (-energyFlowIntoLiquidPhaseFromTank + energyFlowIntoLiquidPartOfTankFromAmbient - energyFlowIntoGasPartOfTankFromLiquidPartOfTank + boundaryTransferFromLiquidToGasPartOfTank)
 
     energyFlow = -massFlowOutlet * hOutlet - massFlowTop * hTop + energyFlowIntoGasPhaseFromTank + energyFlowIntoLiquidPhaseFromTank
+    
+    printMessages = False
+    if printMessages:
+      print("")
+      print("t = {:.2f} s".format(t))
+      print("masses:")
+      print(" {:45s} = {:8.2f} kg".format("gas", derived[self.derived_gasMass]))
+      print(" {:45s} = {:8.2f} kg".format("liquid", derived[self.derived_liquidMass]))
+      print(" {:45s} = {:8.2f} kg".format("tank (gas part)", gasPartOfTankMass))
+      print(" {:45s} = {:8.2f} kg".format("tank (liquid part)", liquidPartOfTankMass))
+      print("energy:")
+      print(" {:45s} = {:8.2f} kJ".format("oxidizer (total)", state[self.states_totalEnergy] / 1e3))
+      print(" {:45s} = {:8.2f} kJ".format("tank (gas part)", state[self.states_gasWallTankTemperature] * gasPartOfTankMass * tankHeatCapacity / 1e3))
+      print(" {:45s} = {:8.2f} kJ".format("tank (liquid part)", state[self.states_liquidWallTankTemperature] *  liquidPartOfTankMass * tankHeatCapacity / 1e3))
+      print("heat capacity:")
+      print(" {:45s} = {:8.2f} kJ/K".format("gas", derived[self.derived_gasMass] * gasCp / 1e3))
+      print(" {:45s} = {:8.2f} kJ/K".format("liquid", derived[self.derived_liquidMass] * liquidCp / 1e3))
+      print(" {:45s} = {:8.2f} kJ/K".format("tank (gas part)", gasPartOfTankMass * tankHeatCapacity / 1e3))
+      print(" {:45s} = {:8.2f} kJ/K".format("tank (liquid part)", liquidPartOfTankMass * tankHeatCapacity / 1e3))
+      print("heat flux:")
+      print(" {:45s} = {:8.2f} kW".format("tank (gas part) -> gas", energyFlowIntoGasPhaseFromTank / 1e3))
+      print(" {:45s} = {:8.2f} kW".format("ambient -> tank (gas part)", energyFlowIntoGasPartOfTankFromAmbient / 1e3))
+      print(" {:45s} = {:8.2f} kW".format("tank (liquid part) -> liquid", energyFlowIntoLiquidPhaseFromTank / 1e3))
+      print(" {:45s} = {:8.2f} kW".format("ambient -> tank (liquid part)", energyFlowIntoLiquidPartOfTankFromAmbient / 1e3))
+      print(" {:45s} = {:8.2f} kW".format("tank (liquid part) -> tank (gas part)", energyFlowIntoGasPartOfTankFromLiquidPartOfTank / 1e3))
+      print(" {:45s} = {:8.2f} kW".format("energy leaving oxidizer through top",  -massFlowTop * hTop / 1e3))
+      print(" {:45s} = {:8.2f} kW".format("energy leaving oxidizer through bottom", -massFlowOutlet * hOutlet / 1e3))
+
 
     return [massFlow, energyFlow, dGasWallTemperature_dt, dLiquidWallTemperature_dt]
 
