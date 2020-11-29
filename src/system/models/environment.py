@@ -48,7 +48,7 @@ class EnvironmentModel(Model):
     from rellipsoid import earth
     from ambiance import Atmosphere
 
-    surfaceAltitude = models["flight"]["state"][FlightModel.states_z]
+    surfaceAltitude = assumptions.launchSeaLevelAltitude.get() + models["flight"]["state"][FlightModel.states_z]
     if surfaceAltitude < 0:
       surfaceAltitude = 0
     if surfaceAltitude > 80000:
@@ -84,6 +84,6 @@ class EnvironmentModel(Model):
     launchLatitudeRadians = assumptions.launchLatitudeDegrees.get() / 180 * math.pi
 
     # todo for future: take into account the present latitude, not just the starting one
-    verticalGravity, northwardGravity = earth.get_analytic_gravity(launchLatitudeRadians, assumptions.launchSeaLevelAltitude.get())
+    verticalGravity, northwardGravity = earth.get_analytic_gravity(launchLatitudeRadians, surfaceAltitude)
 
     return [pressure, density, speedOfSound, verticalGravity, northwardGravity, viscosity, thermalConductivity, temperature, dynamicPressure, stagnationPressure, stagnationTemperature]

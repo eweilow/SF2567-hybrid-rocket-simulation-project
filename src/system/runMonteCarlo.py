@@ -22,7 +22,6 @@ def stochastic(fileLock, N, output):
   print('process id:', os.getpid())
 
   for i in range(N):
-    start = time.time()
     # Reset all variables to defaults
     assumptions.Variable.reset()
     assumptions.tankFillingGrade.randomizeInRange(0.85, 0.95)

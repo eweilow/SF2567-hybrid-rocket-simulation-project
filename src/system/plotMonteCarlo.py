@@ -15,7 +15,6 @@ import utils.constants as constants
 h = 3
 w = 5
 
-
 def makehist(data, bins = 20):
   plt.hist(data, bins, weights=np.ones_like(data)/float(len(data)), cumulative=False)
 
@@ -91,13 +90,23 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
       meanCCPressure = np.mean(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
       velocity = np.linalg.norm([models["flight"]["state"][FlightModel.states_vx], models["flight"]["state"][FlightModel.states_vy], models["flight"]["state"][FlightModel.states_vz]], axis=0)
       altitude = models["flight"]["state"][FlightModel.states_z]
-
       acceleration = np.linalg.norm([models["flight"]["derived"][FlightModel.derived_ax], models["flight"]["derived"][FlightModel.derived_ay], models["flight"]["derived"][FlightModel.derived_az]], axis=0)
-      
       totalImpulse = scipy.integrate.trapz(models["nozzle"]["derived"][NozzleModel.derived_thrust], t) / 1000
-
       finalPortRadius = models["combustion"]["state"][CombustionModel.states_portRadius][-1] / constants.Lengths.mm
+      leavingTowerIndex = np.where(models["flight"]["derived"][FlightModel.derived_onTower] == 0)
+      leavingTowerIndex = leavingTowerIndex[0][0]
+      leavingTowerTime = t[leavingTowerIndex]
+      leavingTowerVelocity = velocity[leavingTowerIndex]
 
+      outletPhase = np.nan_to_num(models["tank"]["derived"][TankModel.derived_outletPhase])
+      
+      burnoutIndex = np.where(outletPhase > 0.5)
+      burnoutIndex = burnoutIndex[0][0]
+      burnoutTime = t[burnoutIndex]
+
+      leavingTowerTimes.append(leavingTowerTime)
+      burnoutTimes.append(burnoutTime)
+      leavingTowerVelocities.append(leavingTowerVelocity)
       initialTemperatures.append(initialTemperature)
       fillingGrades.append(fillingGrade * 100)
       peakThrusts.append(peakThrust)
@@ -124,20 +133,6 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
       plt.subplot(h,w,15)
       plt.plot(t, models["tank"]["derived"][TankModel.derived_pressure] / constants.Pressure.bar, '-', linewidth=0.5)
 
-      leavingTowerIndex = np.where(models["flight"]["derived"][FlightModel.derived_onTower] == 0)
-      leavingTowerIndex = leavingTowerIndex[0][0]
-      leavingTowerTime = t[leavingTowerIndex]
-      leavingTowerVelocity = velocity[leavingTowerIndex]
-
-      outletPhase = np.nan_to_num(models["tank"]["derived"][TankModel.derived_outletPhase])
-      
-      burnoutIndex = np.where(outletPhase > 0.5)
-      burnoutIndex = burnoutIndex[0][0]
-      burnoutTime = t[burnoutIndex]
-
-      leavingTowerTimes.append(leavingTowerTime)
-      burnoutTimes.append(burnoutTime)
-      leavingTowerVelocities.append(leavingTowerVelocity)
       # plt.subplot(h,w,14)
       # plt.plot(t, models["tank"]["derived"][TankModel.derived_temperature] - 273.15, '-', linewidth=0.5)
     

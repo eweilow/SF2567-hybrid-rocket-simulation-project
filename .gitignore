@@ -131,3 +131,5 @@ dmypy.json
 src/system/tmp/montecarlo.npy
 
 src/system/tmp/simulation.npy
+
+src/system/tmp/

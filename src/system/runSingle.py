@@ -46,25 +46,28 @@ def solver(
       except Exception:
         return 1
 
-      gamma = derivative[0, 9]
-      volume = derivative[0, 10]
-      dgamma_dt = ydot[9]
-      dvolume_dt = ydot[10]
+      gamma = derivative[0, 10]
+      volume = derivative[0, 11]
+      dgamma_dt = ydot[10]
+      dvolume_dt = ydot[11]
 
-      pressure = y[6]
+      pressure = y[7]
 
-      derivative[0, 6] += pressure / (volume - 1) * dgamma_dt
-      derivative[0, 6] += pressure * gamma / volume * dvolume_dt
+      derivative[0, 7] += pressure / (volume - 1) * dgamma_dt
+      derivative[0, 7] += pressure * gamma / volume * dvolume_dt
+
+      tankVolume = derivative[0, 4]
 
       for i in range(N):
         result[i] = ydot[i] - derivative[0, i]
       
 
       # DAE part... not pretty but yes, for now, it works
-      result[9] = ydot[9]
+      result[4] = tankVolume
       result[10] = ydot[10]
-      result[N] = y[N] - derivative[0, 9]
-      result[N+1] = y[N+1] - derivative[0, 10]
+      result[11] = ydot[11]
+      result[N] = y[N] - derivative[0, 10]
+      result[N+1] = y[N+1] - derivative[0, 11]
 
       return 0
 
@@ -76,15 +79,15 @@ def solver(
       y0 = np.concatenate((y0, np.zeros(extra_vars)))
       yp0 = np.concatenate((yp0, np.zeros(extra_vars)))
 
-    y0[9] = 0
-    yp0[9] = 0
     y0[10] = 0
     yp0[10] = 0
-    y0[N] = yp0[9]
+    y0[11] = 0
+    yp0[11] = 0
+    y0[N] = yp0[10]
     yp0[N] = 0
-    y0[N+1] = yp0[10]
+    y0[N+1] = yp0[11]
     yp0[N+1] = 0
-    algebraic_vars_idx = [6, 9, 10, N, N+1]
+    algebraic_vars_idx = [4, 7, 10, 11, N, N+1]
 
     def root_fn(t, y, yp, result):
       for i in range(len(events)):
@@ -105,8 +108,6 @@ def solver(
 
 
     solution = solver.solve(times, y0, yp0)
-
-    print(solution.message)
 
     # 0 is done
     # 2 is that it hit root

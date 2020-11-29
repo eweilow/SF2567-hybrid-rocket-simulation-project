@@ -103,6 +103,7 @@ class EquilibriumTankModel(Model):
   states_totalEnergy = 1
   states_gasWallTankTemperature = 2
   states_liquidWallTankTemperature = 3
+  states_temperature = 4
 
   derived_pressure = 0
   derived_outletDensity = 1
@@ -120,21 +121,22 @@ class EquilibriumTankModel(Model):
   derived_liquidVolume = 13
   derived_outletPhase = 14
   derived_topPhase = 15
+  derived_volume = 16
   
   def initializeSimplifiedModel(self, timeHistory, stateHistory, derivedVariablesHistory):
     mDot = extendDerivative(timeHistory, stateHistory[self.states_oxidizerMass])
     pressure = extend(timeHistory, derivedVariablesHistory[self.derived_pressure])
     args = (mDot, pressure, )
-    mask = [True, None]
+    mask = [True, None, None, None, None]
     return mask, args
 
   def computeSimplifiedState(self, args, time):
     mDot, pressure = args
-    return [mDot(time), 0, 0, 0]
+    return [mDot(time), 0, 0, 0, 0]
 
   def computeSimplifiedDerivedVariables(self, args, time):
     mdot, pressure = args
-    ret = [None for i in range(16)]
+    ret = [None for i in range(17)]
     ret[self.derived_pressure] = pressure(time)
 
     return ret
@@ -153,7 +155,7 @@ class EquilibriumTankModel(Model):
 
     totalMass = filledGasMass + filledLiquidMass
     totalEnergy = self.deriveTotalEnergy(filledGasMass, filledLiquidMass, assumptions.tankFilledTemperature.get())
-    return [totalMass, totalEnergy, assumptions.tankInitialWallTemperature.get(), assumptions.tankInitialWallTemperature.get()]
+    return [totalMass, totalEnergy, assumptions.tankInitialWallTemperature.get(), assumptions.tankInitialWallTemperature.get(), assumptions.tankFilledTemperature.get()]
 
   def computeDerivatives(self, t, state, derived, models):
     from models.tank import TankModel
@@ -337,8 +339,8 @@ class EquilibriumTankModel(Model):
       print(" {:45s} = {:8.2f} kW".format("energy leaving oxidizer through top",  -massFlowTop * hTop / 1e3))
       print(" {:45s} = {:8.2f} kW".format("energy leaving oxidizer through bottom", -massFlowOutlet * hOutlet / 1e3))
 
-
-    return [massFlow, energyFlow, dGasWallTemperature_dt, dLiquidWallTemperature_dt]
+    
+    return [massFlow, energyFlow, dGasWallTemperature_dt, dLiquidWallTemperature_dt, derived[self.derived_volume] - assumptions.tankVolume.get()]
 
   tankBurnoutTime = 0
 
@@ -346,24 +348,30 @@ class EquilibriumTankModel(Model):
     totalMass = state[self.states_oxidizerMass]
     totalEnergy = state[self.states_totalEnergy]
 
-    def tempFn(temperature):
-      return self.derivePropellantVolume(totalMass, totalEnergy, temperature) - assumptions.tankVolume.get()
+    if options.solvingWithDAE:
+      temperature = state[self.states_temperature]
 
-    try:
-      if options.rootFindingType == "bisect":
-        temperature = scipy.optimize.bisect(tempFn, 183, 309)
+    else:
+      def tempFn(temperature):
+        return self.derivePropellantVolume(totalMass, totalEnergy, temperature) - assumptions.tankVolume.get()
 
-      if options.rootFindingType == "brentq":
-        temperature = scipy.optimize.brentq(tempFn, 183, 309)
+      try:
+        if options.rootFindingType == "bisect":
+          temperature = scipy.optimize.bisect(tempFn, 183, 309)
 
-      if options.rootFindingType == "toms748":
-        temperature = scipy.optimize.toms748(tempFn, 183, 309, k=2)
+        if options.rootFindingType == "brentq":
+          temperature = scipy.optimize.brentq(tempFn, 183, 309)
 
-      if options.rootFindingType == "newton":
-        temperature = scipy.optimize.newton(tempFn, 293)
+        if options.rootFindingType == "toms748":
+          temperature = scipy.optimize.toms748(tempFn, 183, 309, k=2)
 
-    except:
-      temperature = 183
+        if options.rootFindingType == "newton":
+          temperature = scipy.optimize.newton(tempFn, 293)
+
+      except:
+        temperature = 183
+
+    volume = self.derivePropellantVolume(totalMass, totalEnergy, temperature)
 
     pressure = CP.PropsSI('P','T',temperature,'Q',0,'N2O')
     vaporQuality = self.deriveVaporQuality(totalMass, totalEnergy, temperature)
@@ -399,7 +407,8 @@ class EquilibriumTankModel(Model):
 
     # dLiquidWallTemperature_dt = tankWallHeatTransfer()
     return [
-      pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase
+      pressure, densityOutlet, densityTop, temperature, hOutlet, hTop, liquidMass, gasMass, vaporQuality, liquidLevel, gasDensity, liquidDensity, gasVolume, liquidVolume, outletPhase, topPhase,
+      volume
     ]
   
 class TankModel(EquilibriumTankModel):
