@@ -19,7 +19,8 @@ def makehist(data, bins = 20):
   plt.hist(data, bins, weights=np.ones_like(data)/float(len(data)), cumulative=False)
 
 with open('./tmp/montecarlo.npy', 'rb') as f:
-  [N] = np.load(f)
+  # [N] = np.load(f)
+  N = 20000
 
   initialTemperatures = []
   fillingGrades = []
@@ -241,8 +242,8 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
 
   triang = tri.Triangulation(fillingGrades, initialTemperatures)
   interpolator = tri.LinearTriInterpolator(triang, impulses)
-  xi = np.linspace(85, 95, 150)
-  yi = np.linspace(0, 25, 150)
+  xi = np.linspace(85, 100, 150)
+  yi = np.linspace(-5, 25, 150)
   Xi, Yi = np.meshgrid(xi, yi)
   zi = interpolator(Xi, Yi)
 

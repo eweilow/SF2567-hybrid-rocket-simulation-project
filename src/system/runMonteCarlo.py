@@ -24,64 +24,75 @@ def stochastic(fileLock, N, output):
   for i in range(N):
     # Reset all variables to defaults
     assumptions.Variable.reset()
-    assumptions.tankFillingGrade.randomizeInRange(0.85, 0.95)
-    assumptions.tankFilledTemperature.randomizeInRange(273, 298)
 
-    assumptions.dragLevelAtPeak.randomize(0.05)
-    assumptions.dragLevelAtZero.randomize(0.05)
-    assumptions.dragLevelMachAsymptote.randomize(0.05)
-    assumptions.dragDropoffConstant.randomize(0.05)
-    assumptions.dragPeakMachNumber.randomize(0.05)
-    assumptions.dragPeakSmoothingRadius.randomize(0.05)
+    knownLengthTolerance = 0.01 # +- 1%
+    knownVolumeTolerance = 0.05 # +- 5%
+    knownMassTolerance = 0.025 # +- 2.5%
+    knownConstantTolerance = 0.025
+    efficiencyTolerance = 0.025  # +- 2.5%
+
+    assumptions.tankOutletLiquidGasTransferRadius.randomize(knownConstantTolerance)
+    assumptions.tankTopVentLiquidGasTransferRadius.randomize(knownConstantTolerance)
+    assumptions.initialAtmosphericPressure.randomize(knownConstantTolerance)
+    assumptions.initialAtmosphericTemperature.randomize(knownConstantTolerance)
+    assumptions.tankFillingGrade.randomizeInRange(0.85, 0.99)
+    assumptions.tankFilledTemperature.randomizeInRange(268, 298)
+    assumptions.tankVolume.randomize(0.025)
+    assumptions.tankThickness.randomize(knownLengthTolerance)
+    assumptions.tankWallDensity.randomize(knownConstantTolerance)
+    assumptions.tankWallThermalConductivity.randomize(knownConstantTolerance)
+    assumptions.tankWallSpecificHeatCapacity.randomize(knownConstantTolerance)
+    assumptions.tankPassiveVentDischargeCoefficient.randomize(knownConstantTolerance)
+    assumptions.tankPassiveVentDiameter.randomize(knownLengthTolerance)
+    assumptions.fuelDensitySolid.randomize(knownConstantTolerance)
+    assumptions.fuelDensityLiquid.randomize(knownConstantTolerance)
+    assumptions.fuelEnthalpyOfFormation.randomize(knownConstantTolerance)
+    assumptions.fuelPortLength.randomize(knownLengthTolerance)
+    assumptions.fuelPortInitialRadius.randomize(knownLengthTolerance)
+    assumptions.carbonBlackFraction.randomize(knownConstantTolerance)
+    assumptions.preCombustionChamberVolume.randomize(knownVolumeTolerance)
+    assumptions.postCombustionChamberVolume.randomize(knownVolumeTolerance)
+    assumptions.combustionEfficiency.randomize(efficiencyTolerance)
+    assumptions.fuelGrainAConstant.randomizeInRange(0.132e-3 - 0.015e-3, 0.155e-3 + 0.015e-3)
+    assumptions.fuelGrainNConstant.randomizeInRange(0.5-0.015, 0.555+0.015)
+    assumptions.injectorHoleCount.randomize(knownConstantTolerance)
+    assumptions.injectorHoleDischargeCoefficient.randomize(knownConstantTolerance)
+    assumptions.injectorHoleDiameter.randomize(knownLengthTolerance)
+    assumptions.nozzleEfficiency.randomize(efficiencyTolerance)
+    assumptions.nozzleExhaustRadius.randomize(knownLengthTolerance)
+    assumptions.nozzleThroatRadius.randomize(knownLengthTolerance)
     
-    assumptions.combustionEfficiency.randomize(0.05)
-    assumptions.fuelDensitySolid.randomize(0.05)
-    assumptions.fuelDensityLiquid.randomize(0.05)
-    assumptions.fuelEnthalpyOfFormation.randomize(0.01)
-    assumptions.carbonBlackFraction.randomize(0.05)
-    assumptions.fuelGrainAConstant.randomize(0.001)
-    assumptions.fuelGrainNConstant.randomize(0.001)
-    assumptions.fuelPortInitialRadius.randomize(0.001)
-    assumptions.fuelPortLength.randomize(0.001)
-    assumptions.fuelPortMaximumRadius.randomize(0.001)
-    assumptions.initialAtmosphericPressure.randomize(0.01)
-    assumptions.injectorHoleDiameter.randomize(0.01)
-    assumptions.injectorHoleDischargeCoefficient.randomize(0.05)
-    assumptions.launchTowerDirectionAngle.randomize(0.05)
-    assumptions.launchSeaLevelAltitude.randomize(0.05)
-    assumptions.launchTowerLength.randomize(0.05)
-    assumptions.launchTowerDirectionAngle.randomize(0.05)
+    assumptions.launchLatitudeDegrees.randomize(knownConstantTolerance)
+    assumptions.launchLongitudeDegrees.randomize(knownConstantTolerance)
+    assumptions.launchSeaLevelAltitude.randomize(knownConstantTolerance)
+    assumptions.launchTowerLength.randomizeInRange(9, 11)
+    assumptions.launchTowerVerticalAngle.randomizeInRange(78, 82)
+    assumptions.launchTowerDirectionAngle.randomizeInRange(0, 360)
+    assumptions.rocketBodyDiameter.randomize(knownLengthTolerance)
+    assumptions.rocketOnBoardRecoverySystemMass.randomize(knownMassTolerance)
+    assumptions.rocketOnBoardElectronicsMass.randomize(knownMassTolerance)
+    assumptions.rocketPayloadMass.randomize(knownMassTolerance)
+    assumptions.rocketBodyMass.randomize(knownMassTolerance)
+    assumptions.rocketOxidizerTankMass.randomize(knownMassTolerance)
+    assumptions.rocketFuelCasingMass.randomize(knownMassTolerance)
+    assumptions.kastrullMass.randomize(knownMassTolerance)
+    assumptions.fastenersMass.randomize(knownMassTolerance)
+    assumptions.injectorMass.randomize(knownMassTolerance)
+    assumptions.chamberWallsMass.randomize(knownMassTolerance)
+    assumptions.nozzleMass.randomize(knownMassTolerance)
+    assumptions.rocketEngineMass.randomize(knownMassTolerance)
 
-    assumptions.nozzleEfficiency.randomize(0.05)
-    assumptions.nozzleErosionConstant.randomize(0.05)
-    assumptions.nozzleErosionStart.randomize(0.05)
-    assumptions.nozzleErosionStartRadius.randomize(0.05)
-
-    assumptions.nozzleExhaustRadius.randomize(0.01)
-    assumptions.nozzleThroatRadius.randomize(0.01)
-
-    assumptions.preCombustionChamberVolume.randomize(0.1)
-    assumptions.postCombustionChamberVolume.randomize(0.1)
-
-    assumptions.tankPassiveVentDischargeCoefficient.randomize(0.05)
-    assumptions.tankPassiveVentDiameter.randomize(0.01)
-
-    assumptions.rocketBodyDiameter.randomize(0.01)
-
-    assumptions.rocketOnBoardRecoverySystemMass.randomize(0.05)
-    assumptions.rocketOnBoardElectronicsMass.randomize(0.05)
-    assumptions.rocketPayloadMass.randomize(0.05)
-    assumptions.rocketBodyMass.randomize(0.05)
-    assumptions.rocketOxidizerTankMass.randomize(0.05)
-    assumptions.rocketFuelCasingMass.randomize(0.05)
-    assumptions.kastrullMass.randomize(0.05)
-    assumptions.fastenersMass.randomize(0.05)
-    assumptions.injectorMass.randomize(0.05)
-    assumptions.chamberWallsMass.randomize(0.05)
-    assumptions.nozzleMass.randomize(0.05)
-
-    assumptions.combustionEfficiencyStartupTransientTime.randomize(0.1)
-    assumptions.injectorStartupTransientTime.randomize(0.1)
+    assumptions.dragLevelAtZero.randomize(knownConstantTolerance)
+    assumptions.dragLevelAtPeak.randomize(knownConstantTolerance)
+    assumptions.dragPeakMachNumber.randomize(knownConstantTolerance)
+    assumptions.dragLevelMachAsymptote.randomize(knownConstantTolerance)
+    assumptions.dragDropoffConstant.randomize(knownConstantTolerance)
+    assumptions.dragPeakSmoothingRadius.randomize(knownConstantTolerance)
+    assumptions.combustionEfficiencyStartupTransientTime.randomize(knownConstantTolerance)
+    assumptions.combustionEfficiencyStartupDelay.randomize(knownConstantTolerance)
+    assumptions.injectorStartupTransientTime.randomize(knownConstantTolerance)
+    assumptions.injectorStartupDelay.randomize(knownConstantTolerance)
+    assumptions.maximumRegressionRateAt.randomize(knownConstantTolerance)
     
     options.printTime = False
 
@@ -107,15 +118,12 @@ def stochastic(fileLock, N, output):
 
 
 if __name__ == '__main__':
-  P = 6
-  N = 200
+  P = 4
+  N = 5000
 
-  with open('/data/montecarlo.npy', "wb") as f:
-    np.save(f, [P * N])
-  
   fileLock = Lock()
 
-  print("If each takes ~16 seconds, time to completion is ~{:.1f} minutes".format(N*16/60))
+  print("If each takes ~50 seconds, time to completion is ~{:.1f} minutes".format(N*40/60))
 
   processes = []
   for num in range(P):

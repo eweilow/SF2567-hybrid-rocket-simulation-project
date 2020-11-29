@@ -13,6 +13,10 @@ from models.environment import EnvironmentModel
 from models.flight import FlightModel
 import utils.constants as constants
 
+plotBars = False
+plotGrouped = False
+plotBarPercentage = False
+
 def interpolateToFindPeak(x, y):
 #  x, unique_indices = np.unique(x, return_index=True)
 #  y = y[unique_indices]
@@ -35,7 +39,8 @@ def interpolateToFindPeak(x, y):
 unphysicalModesToSkip = ["nozzleEfficiency", "combustionEfficiency", "tankInsideRadius", "tankTopVentLiquidGasTransferRadius", "tankOutletLiquidGasTransferRadius"]
 
 with open('./tmp/sensitivity.npy', 'rb') as f:
-  [N] = np.load(f)
+  # [N] = np.load(f)
+  N = 20000
 
   modeDatas = {}
   legends = tuple()
@@ -147,10 +152,6 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
       modeDatas[mode][key] = np.array(modeDatas[mode][key])
     modeDatas[mode]["deviation"] = (modeDatas[mode]["values"] - modeDatas[mode]["baselines"]) / modeDatas[mode]["baselines"] * 100
      
-  plotBars = True
-  plotGrouped = True
-
-  plotBarPercentage = False
 
   index = 1
   width = 3 if plotBars else 6

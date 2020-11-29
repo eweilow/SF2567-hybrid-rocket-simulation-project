@@ -199,7 +199,7 @@ def runSystem():
   solveWithDAE = True
 
   models, system, events, initialState, hit_ground_event, hit_apoapsis = makeODE()
-  t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.05, events, useDae=solveWithDAE)
+  t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.01, events, useDae=solveWithDAE)
   recoverModelState(t, y, models)
 
   models2, system2, events2, initialState2, hit_ground_event2, hit_apoapsis2 = makeODE(simplified = True, timeHistory=t, previousModels=models)

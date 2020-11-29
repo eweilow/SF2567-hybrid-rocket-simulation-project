@@ -17,18 +17,6 @@ from multiprocessing import Process, Lock
 
 from runSingle import solver, runSystem
 
-
-modes = [
-  "tankFillingGrade", 
-  "tankFilledTemperature", 
-  "rocketPayloadMass", 
-  "combustionEfficiency", 
-  "nozzleEfficiency",
-  "injectorHoleDischargeCoefficient",
-]
-
-
-
 def stochastic(fileLock, N, output):
   random.seed(int(os.getpid() + time.time()))
   print('module name:', __name__)
@@ -69,8 +57,8 @@ def stochastic(fileLock, N, output):
 
 
 if __name__ == '__main__':
-  P = 6
-  N = 500
+  P = 4
+  N = 5000
 
   # with open('/data/sensitivity.npy', "wb") as f:
   #   np.save(f, [P * N])
