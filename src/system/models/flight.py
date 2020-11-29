@@ -69,9 +69,11 @@ class FlightModel(Model):
     perpendicular = np.linalg.norm(perpendicularVector)
 
     onTower = False
+    distanceAlongTower = 0
     # some tolerance
     if perpendicular < 5 * constants.Lengths.cm and projection < assumptions.launchTowerLength.get():
       onTower = True
+      distanceAlongTower = assumptions.launchTowerLength.get() - projection
     
     direction = launchTowerVector if onTower else velocity
     direction = direction / np.linalg.norm(direction)
@@ -110,4 +112,4 @@ class FlightModel(Model):
       acceleration = initialAcceleration
     
 
-    return [acceleration[0], acceleration[1], acceleration[2], 1 if onTower else 0, mach, propellantMass, rocketMass, totalMass, perceivedGravity]
+    return [acceleration[0], acceleration[1], acceleration[2], distanceAlongTower, mach, propellantMass, rocketMass, totalMass, perceivedGravity]

@@ -230,10 +230,10 @@ plt.title("Combustion gamma")
 plt.xlim(t0, t1)
 
 nextSubplot()
-plt.plot(t, models["combustion"]["derived"][CombustionModel.derived_CpT], '-')
+plt.plot(t, models["flight"]["derived"][FlightModel.derived_onTower], '-')
 plt.xlabel("Time (s)")
-plt.ylabel("CpT")
-plt.title("Combustion CpT")
+plt.ylabel("Distance to end (m)")
+plt.title("Distance along tower")
 plt.xlim(t0, t1)
 
 nextSubplot()

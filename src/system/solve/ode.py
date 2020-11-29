@@ -118,10 +118,25 @@ def makeODE(simplified = False, timeHistory = None, previousModels = None):
   hit_ground_event.terminal = True
   hit_ground_event.direction = -1
 
+  def hit_apoapsis(t, y): 
+    models["flight"]["state"] = np.dot(models["flight"]["invMatrix"], y)
+    return models["flight"]["state"][FlightModel.states_vz] + 1e-6
+  hit_apoapsis.terminal = False
+
+  def left_rail(t, y ):
+    applyModelStates(models, y)
+    # Set up derived variables
+    visited = []
+    for key in models:
+      visited = recurseModelDependencies(t, models[key], 0, models, visited)
+
+    return models["flight"]["derived"][FlightModel.derived_onTower]
+  left_rail.terminal = False
+
   # events = (no_oxidizer_mass, no_fuel_mass, no_oxidizer_energy, no_chamber_pressure, hit_ground_event)
-  events = (low_oxidizer_temperature, low_oxidizer_pressure, no_fuel_mass, no_oxidizer_energy, hit_ground_event)
+  events = (low_oxidizer_temperature, low_oxidizer_pressure, no_fuel_mass, no_oxidizer_energy, hit_ground_event, hit_apoapsis, left_rail)
 
   initialState = collectModelStates(models, fullSystemLength)
 
 
-  return models, system, events, initialState, hit_ground_event
+  return models, system, events, initialState, hit_ground_event, hit_apoapsis

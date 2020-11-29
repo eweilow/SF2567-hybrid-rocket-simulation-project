@@ -23,11 +23,6 @@ def solver(
 ):
   times = np.arange(fromTime, toTime, outputTimestep)
 
-  if useDae:
-    print("Running solution from {:.2f} to {:.2f} with DAE solver".format(fromTime, toTime))
-  else:
-    print("Running solution from {:.2f} to {:.2f} with ODE solver".format(fromTime, toTime))
-
   options.solvingWithDAE = useDae
   # sys is of the form def system(t, y)
   if useDae:
@@ -91,6 +86,10 @@ def solver(
 
     def root_fn(t, y, yp, result):
       for i in range(len(events)):
+        if hasattr(events[i], "disabled") and events[i].disabled:
+          result[i] = 1
+          continue
+
         result[i] = events[i](t, y[0:N])
 
       # print(t, result)
@@ -107,17 +106,53 @@ def solver(
     )
 
 
-    solution = solver.solve(times, y0, yp0)
+    allTimes = np.zeros((0))
+    allY = np.zeros((N,0))
+    currentTime = 0
+    
+    currentY0 = y0
+    currentYP0 = yp0
 
-    # 0 is done
-    # 2 is that it hit root
-    if not (solution.flag == 0 or solution.flag == 2):
-      raise Exception("Flag is not 0 or 2 (it is " + str(solution.flag) + ")")
+    while True:
+      computeTimes = np.concatenate(([currentTime], times[times > currentTime]))
 
-    t = np.array(solution.values.t)
-    v = np.array(solution.values.y)
-    return np.transpose(t), np.transpose(v[:,0:N]), t[-1]
+      if len(computeTimes) == 0:
+        break
 
+      print("Running solution from {:.4f} to {:.4f} with DAE (IDA) solver".format(np.min(computeTimes), np.max(computeTimes)))
+      solution = solver.solve(computeTimes, currentY0, currentYP0)
+
+      # 0 is done
+      # 2 is that it hit root
+      if not (solution.flag == 0 or solution.flag == 2):
+        raise Exception("Flag is not 0 or 2 (it is " + str(solution.flag) + ")")
+
+      t = np.array(solution.values.t)
+      v = np.array(solution.values.y)
+      allTimes = np.concatenate((allTimes, np.transpose(t)))
+      allY = np.concatenate((allY, np.transpose(v[:,0:N])), axis=1)
+
+      if solution.flag == 2:
+        root = solution.roots
+        result = np.zeros(len(events))
+        root_fn(root.t[0], root.y[0], root.ydot[0], result)
+        result = np.abs(result)
+        argmin = np.argmin(result)
+        event = events[argmin]
+        event.disabled = True
+
+        currentTime = root.t[0]
+        currentY0 = root.y[0]
+        currentYP0 = root.ydot[0]
+        print("Root '{:}' hit at {:.4f}".format(event.__name__, currentTime))
+        if hasattr(event, "terminal"):
+          if event.terminal:
+            break # stop!
+          
+
+    return allTimes, allY, allTimes[-1]
+    
+  print("Running solution from {:.2f} to {:.2f} with ODE (LSODA) solver".format(fromTime, toTime))
   sol = solve_ivp(
     sys, 
     [fromTime, toTime], 
@@ -127,7 +162,20 @@ def solver(
     dense_output=False, 
     events=events
   )
-  
+
+  for i in range(len(sol.t_events)):
+    sol.t = np.concatenate((sol.t, sol.t_events[i]), axis=0)
+    sol.y = np.concatenate((sol.y, np.transpose(sol.y_events[i])), axis=1)
+  #   sol.t = np.concatenate(sol.t, sol.t_events[i])
+  #   sol.y = np.concatenate(sol.y, sol.y_events[i])
+  # 
+  # sort_indices = np.argsort(sol.t, axis=0)
+  # sol.t = sol.t[sort_indices]
+  # sol.y = sol.y[sort_indices]
+
+  indices = np.argsort(sol.t)
+  sol.t = sol.t[indices]
+  sol.y = sol.y[:,indices]
   return sol.t, sol.y, sol.t[-1]
 
 def recoverModelState(t, y, models):
@@ -145,17 +193,17 @@ def recoverModelState(t, y, models):
 def runSystem():
   start = time.time()
 
-  maximumSolveTime = 100
+  maximumSolveTime = 25
   # options.printTime = False
 
   solveWithDAE = True
 
-  models, system, events, initialState, hit_ground_event = makeODE()
-  t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.01, events, useDae=solveWithDAE)
+  models, system, events, initialState, hit_ground_event, hit_apoapsis = makeODE()
+  t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.05, events, useDae=solveWithDAE)
   recoverModelState(t, y, models)
 
-  models2, system2, events2, initialState2, hit_ground_event2 = makeODE(simplified = True, timeHistory=t, previousModels=models)
-  t2, y2, tend2 = solver(system2, y[:,-1], tend, tend + 240, 0.25, events=(hit_ground_event2), useDae=False)
+  models2, system2, events2, initialState2, hit_ground_event2, hit_apoapsis2 = makeODE(simplified = True, timeHistory=t, previousModels=models)
+  t2, y2, tend2 = solver(system2, y[:,-1], tend, tend + 240, 0.25, events=(hit_ground_event2, hit_apoapsis2), useDae=False)
   applyDerivedVariablesToResult(t2, y2, models2)
   recoverModelState(t2, y2, models2)
 
@@ -176,7 +224,7 @@ def runSystem():
   return cpuTime, timeRanges, times, modelsOutput
 
 if __name__ == '__main__':
-  options.printTime = True
+  # options.printTime = True
 
   cpuTime, timeRanges, times, modelsOutput = runSystem()
   print("Running simulation took {:}".format(cpuTime))
