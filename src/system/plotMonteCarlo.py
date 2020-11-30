@@ -265,8 +265,8 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
 
   triang = tri.Triangulation(fillingGrades, initialTemperatures)
   interpolator = tri.LinearTriInterpolator(triang, altitudes / 1000)
-  xi = np.linspace(85, 95, 150)
-  yi = np.linspace(0, 25, 150)
+  xi = np.linspace(85, 100, 150)
+  yi = np.linspace(-5, 25, 150)
   Xi, Yi = np.meshgrid(xi, yi)
   zi = interpolator(Xi, Yi)
   

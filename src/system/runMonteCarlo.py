@@ -95,30 +95,32 @@ def stochastic(fileLock, N, output):
     assumptions.maximumRegressionRateAt.randomize(knownConstantTolerance)
     
     options.printTime = False
+    try:
+      cpuTime, timeRanges, times, modelsOutput = runSystem()
+      print("Running simulation took {:}".format(cpuTime))
+      
+      with fileLock:
+        with open(output, 'ab') as f:
+          np.save(f, timeRanges)
+          np.save(f, times)
+          for key in modelsOutput:
+            np.save(f, modelsOutput[key]["state"])
+            np.save(f, modelsOutput[key]["derivedResult"])
 
-    cpuTime, timeRanges, times, modelsOutput = runSystem()
-    print("Running simulation took {:}".format(cpuTime))
-    
-    with fileLock:
-      with open(output, 'ab') as f:
-        np.save(f, timeRanges)
-        np.save(f, times)
-        for key in modelsOutput:
-          np.save(f, modelsOutput[key]["state"])
-          np.save(f, modelsOutput[key]["derivedResult"])
-
-        np.save(f, cpuTime)
-      # with open('/data/simulation.npy', 'wb') as f:
-      #   np.save(f, sol.t)
-      #   
-      #   for key in models:
-      #     np.save(f, models[key]["state"])
-      #     np.save(f, models[key]["derivedResult"])
+          np.save(f, cpuTime)
+        # with open('/data/simulation.npy', 'wb') as f:
+        #   np.save(f, sol.t)
+        #   
+        #   for key in models:
+        #     np.save(f, models[key]["state"])
+        #     np.save(f, models[key]["derivedResult"])
+    except:
+      pass
 
 
 
 if __name__ == '__main__':
-  P = 4
+  P = 8
   N = 5000
 
   fileLock = Lock()

@@ -13,8 +13,8 @@ from models.environment import EnvironmentModel
 from models.flight import FlightModel
 import utils.constants as constants
 
-plotBars = False
-plotGrouped = False
+plotBars = True
+plotGrouped = True
 plotBarPercentage = False
 
 def interpolateToFindPeak(x, y):
@@ -204,9 +204,13 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
         x, y = zip(*sorted(zip(modeDatas[key]["deviation"], modeDatas[key][series])))
         x = np.array(x)
         y = np.array(y)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+
         indices = np.argwhere(np.abs(x) <= 10)
         x = x[indices]
         y = y[indices]
+
+        slope = slope / centerValue * 100 * 10
 
 
       else:
@@ -221,11 +225,17 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
 
         slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
 
-        # if not plotBars and slope > -5 and slope < 5:
-        #   continue
 
         slopes.append(slope)
         stds.append(std_err)
+
+      if not plotBars:
+        if slope == None or (slope > -1 and slope < 1):
+          plt.plot(x, y, '-', color="#bfbfbf", zorder=4,linewidth=1, label='_nolegend_')
+          continue
+        # plt.plot(x, intercept + slope * x, '--')
+        plt.plot(x, y, '.-', zorder=5,linewidth=1,markersize=2)
+
 
       legendUnit = assumptions.availableToRandomize[key]["unit"] if "unit" in assumptions.availableToRandomize[key] else None
       if legendUnit is None:
@@ -251,9 +261,6 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
         ))
       numIndices += 1
 
-      if not plotBars:
-        # plt.plot(x, intercept + slope * x, '--')
-        plt.plot(x, y, '.-', zorder=5,linewidth=1,markersize=2)
     
     if not plotBars:
       # plt.legend(legends)
