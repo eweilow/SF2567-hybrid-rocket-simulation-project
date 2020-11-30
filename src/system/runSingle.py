@@ -19,11 +19,13 @@ def solver(
   toTime,
   outputTimestep,
   events = None,
-  useDae = False
+  useDae = False,
+  rtol = None,
+  atol = None
 ):
   times = np.arange(fromTime, toTime, outputTimestep)
 
-  options.solvingWithDAE = useDae
+  options.currentlySolvingWithDAE = useDae
   # sys is of the form def system(t, y)
   if useDae:
     from scikits.odes import dae
@@ -33,9 +35,15 @@ def solver(
 
     def addafunc(t, y, ml, mu, p, nrowp):
       return p - np.eye(nrowp)
-      
+    
+    nfev = 0
+    njev = None
+    nlu = None
+
     N = np.size(y0)
     def residual(t, y, ydot, result):
+      nonlocal nfev
+      nfev += 1
       try:
         derivative = sys(t, y[0:N])
       except Exception:
@@ -51,23 +59,23 @@ def solver(
       derivative[0, 7] += pressure / (volume - 1) * dgamma_dt
       derivative[0, 7] += pressure * gamma / volume * dvolume_dt
 
-      tankVolume = derivative[0, 4]
-
       for i in range(N):
         result[i] = ydot[i] - derivative[0, i]
       
 
       # DAE part... not pretty but yes, for now, it works
-      result[4] = tankVolume
+      if options.solveTankVolumeContraintWithDAE:
+        tankVolume = derivative[0, 4]
+        result[4] = tankVolume
+      else:
+        result[4] = y[4]
+
       result[10] = ydot[10]
       result[11] = ydot[11]
       result[N] = y[N] - derivative[0, 10]
       result[N+1] = y[N+1] - derivative[0, 11]
 
       return 0
-
-    rtol = 1e-4
-    atol = 1e-4
 
     extra_vars = 2
     if extra_vars > 0:
@@ -113,6 +121,7 @@ def solver(
     currentY0 = y0
     currentYP0 = yp0
 
+
     while True:
       computeTimes = np.concatenate(([currentTime], times[times > currentTime]))
 
@@ -150,7 +159,7 @@ def solver(
             break # stop!
           
 
-    return allTimes, allY, allTimes[-1]
+    return allTimes, allY, allTimes[-1], nfev, njev, nlu
     
   print("Running solution from {:.2f} to {:.2f} with ODE (LSODA) solver".format(fromTime, toTime))
   sol = solve_ivp(
@@ -160,10 +169,14 @@ def solver(
     'LSODA', 
     t_eval=times, 
     dense_output=False, 
-    events=events
+    events=events,
+    atol=atol,
+    rtol=rtol
   )
 
   for i in range(len(sol.t_events)):
+    if(len(sol.t_events[i]) == 0):
+      continue
     sol.t = np.concatenate((sol.t, sol.t_events[i]), axis=0)
     sol.y = np.concatenate((sol.y, np.transpose(sol.y_events[i])), axis=1)
   #   sol.t = np.concatenate(sol.t, sol.t_events[i])
@@ -176,7 +189,7 @@ def solver(
   indices = np.argsort(sol.t)
   sol.t = sol.t[indices]
   sol.y = sol.y[:,indices]
-  return sol.t, sol.y, sol.t[-1]
+  return sol.t, sol.y, sol.t[-1], sol.nfev, sol.njev, sol.nlu
 
 def recoverModelState(t, y, models):
   applyDerivedVariablesToResult(t, y, models)
@@ -196,16 +209,19 @@ def runSystem():
   maximumSolveTime = 25
   # options.printTime = False
 
-  solveWithDAE = True
-
   models, system, events, initialState, hit_ground_event, hit_apoapsis = makeODE()
-  t, y, tend = solver(system, initialState, 0, maximumSolveTime, 0.01, events, useDae=solveWithDAE)
+  solve1 = time.time()
+  t, y, tend, nfev, njev, nlu = solver(system, initialState, 0, maximumSolveTime, 0.01, events, useDae=options.enableDAESolver, rtol=options.combustion_rtol, atol=options.combustion_atol)
   recoverModelState(t, y, models)
 
+  solve2 = time.time()
   models2, system2, events2, initialState2, hit_ground_event2, hit_apoapsis2 = makeODE(simplified = True, timeHistory=t, previousModels=models)
-  t2, y2, tend2 = solver(system2, y[:,-1], tend, tend + 240, 0.25, events=(hit_ground_event2, hit_apoapsis2), useDae=False)
-  applyDerivedVariablesToResult(t2, y2, models2)
+  t2, y2, tend2, nfev2, njev2, nlu2 = solver(system2, y[:,-1], tend, tend + 240, 0.25, events=(hit_ground_event2, hit_apoapsis2), useDae=False, rtol=options.flight_rtol, atol=options.flight_atol)
   recoverModelState(t2, y2, models2)
+  solve3 = time.time()
+
+  firstSolverTime = solve2 - solve1
+  secondSolverTime = solve3 - solve2
 
   end = time.time()
 
@@ -221,12 +237,12 @@ def runSystem():
       "derivedResult": np.concatenate((models[key]["derivedResult"], models2[key]["derivedResult"]), axis=1),
     }
 
-  return cpuTime, timeRanges, times, modelsOutput
+  return cpuTime, timeRanges, times, modelsOutput, nfev, njev, nlu, firstSolverTime, nfev2, njev2, nlu2, secondSolverTime
 
 if __name__ == '__main__':
   # options.printTime = True
 
-  cpuTime, timeRanges, times, modelsOutput = runSystem()
+  cpuTime, timeRanges, times, modelsOutput, *rest = runSystem()
   print("Running simulation took {:}".format(cpuTime))
 
   with open("/data/simulation.npy", 'wb') as f:

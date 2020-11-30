@@ -83,7 +83,7 @@ class CombustionModel(Model):
     massFlow = injectorMassFlow + fuelMassFlow - nozzleMassFlow
 
     dPressure_dt = (gamma - 1) / (volume) * CpT * (massFlow)
-    if not options.solvingWithDAE:
+    if not options.currentlySolvingWithDAE:
       dPressure_dt -= gamma * state[self.states_pressure] / volume * (burningArea * dPortRadius_dt)
 
     return [dPressure_dt, dPortRadius_dt, -fuelMassFlow, gamma, volume]

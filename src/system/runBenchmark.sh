@@ -7,5 +7,5 @@ if [[ ! -e $DATA_DIR ]]; then
   mkdir -p $DATA_DIR
 fi
 
-docker build -f single.Dockerfile -t $TAG-single .
-docker run -v $DATA_DIR:/data $TAG-single 
+docker build -f benchmark.Dockerfile -t $TAG-benchmark .
+docker run -v $DATA_DIR:/data $TAG-benchmark 

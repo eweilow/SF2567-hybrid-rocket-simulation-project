@@ -96,7 +96,7 @@ def stochastic(fileLock, N, output):
     
     options.printTime = False
     try:
-      cpuTime, timeRanges, times, modelsOutput = runSystem()
+      cpuTime, timeRanges, times, modelsOutput, *rest = runSystem()
       print("Running simulation took {:}".format(cpuTime))
       
       with fileLock:

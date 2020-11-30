@@ -1,9 +1,6 @@
-import CoolProp.CoolProp as CP
+
 import numpy as np
 import hashlib
-from rocketcea.cea_obj import CEA_Obj, add_new_fuel, add_new_oxidizer, add_new_propellant
-from rocketcea.cea_obj_w_units import CEA_Obj as CEA_Obj_W_Units
-from rocketcea.blends import makeCardForNewTemperature
 import os, sys
 
 import assumptions
@@ -28,37 +25,30 @@ class NasaCEA:
   totalHits = 0
   inMemoryCache = {}
 
+  @staticmethod
+  def clear():
+    NasaCEA.cacheHits = 0
+    NasaCEA.totalHits = 0
+    del NasaCEA.inMemoryCache
+    NasaCEA.inMemoryCache = {}
+
   def getPerformanceParameters(self, combustionPressure, ambientPressure, oxidizerTemperature, expansionRatio, mixtureRatio):
+    import CoolProp.CoolProp as CP
+    from rocketcea.cea_obj import CEA_Obj, add_new_fuel, add_new_oxidizer, add_new_propellant
+    from rocketcea.cea_obj_w_units import CEA_Obj as CEA_Obj_W_Units
+    from rocketcea.blends import makeCardForNewTemperature
+
     combustionPressure = max(10, combustionPressure) # Limitation of the library...
     fuelTemperature = 293
 
-    problemString = "Pc={:.2f},Pa={:.2f},To={:.2f},Tf={:.2f},ER={:.2f},MR={:.2f}".format(
-      combustionPressure,
-      ambientPressure,
-      oxidizerTemperature,
-      fuelTemperature,
-      expansionRatio,
-      mixtureRatio
-    )
-    strHash = hashlib.md5(problemString.encode()).hexdigest()
-    NasaCEA.totalHits = NasaCEA.totalHits + 1
-    if options.enableCeaLookup and strHash in NasaCEA.inMemoryCache:
-      # print("Hit cache")
-      NasaCEA.cacheHits = NasaCEA.cacheHits + 1
-      return NasaCEA.inMemoryCache[strHash]
-    
     HMOLAR = CP.PropsSI('HMOLAR','T',oxidizerTemperature,'P',combustionPressure,"N2O") / 1e3
     oxidizerDensity = CP.PropsSI('D','T',oxidizerTemperature,'P',combustionPressure,"N2O")
     RHO = oxidizerDensity * 1e3 / (1e2 * 1e2 * 1e2)
 
-    # print(HMOLAR, RHO)
-
-    card_str = """
+    oxid_card_str = """
     oxid=NITROUS wt=1.0 t,K={:.2f} h,kj/mol={:.2f} rho,g/cc={:.2f} N 2 O 1
     """.format(oxidizerTemperature, HMOLAR, RHO)
-    add_new_oxidizer('NITROUS_COOLPROP', card_str.format(oxidizerTemperature))
-
-    card_str = """
+    fuel_card_str = """
     fuel=C(gr) wt={:.4f} t,K={:.2f}
     fuel=SASOL907 wt={:.4f} t,K={:.2f} h,kj/mol={:.2f} rho,g/cc={:.3f} C 50 H 102
     """.format(
@@ -68,7 +58,29 @@ class NasaCEA:
       fuelTemperature, 
       assumptions.fuelEnthalpyOfFormation.get(), 
       assumptions.fuelDensityLiquid.get() / 1e3)
-    add_new_fuel('SASOLWAX907_CARBONBLACK', card_str)
+
+    problemString = "Pc={:.2f},Pa={:.2f},To={:.2f},Tf={:.2f},ER={:.2f},MR={:.2f},oxid={:},fuel={:}".format(
+      combustionPressure,
+      ambientPressure,
+      oxidizerTemperature,
+      fuelTemperature,
+      expansionRatio,
+      mixtureRatio,
+      oxid_card_str,
+      fuel_card_str
+    )
+    strHash = hashlib.md5(problemString.encode()).hexdigest()
+    NasaCEA.totalHits = NasaCEA.totalHits + 1
+    if options.enableCeaLookup and strHash in NasaCEA.inMemoryCache:
+      # print("Hit cache")
+      NasaCEA.cacheHits = NasaCEA.cacheHits + 1
+      return NasaCEA.inMemoryCache[strHash]
+    
+
+    # print(HMOLAR, RHO)
+
+    add_new_oxidizer('NITROUS_COOLPROP', oxid_card_str)
+    add_new_fuel('SASOLWAX907_CARBONBLACK', fuel_card_str)
 
     with hiddenPrints:
       combustionPressure = round(combustionPressure, 2)

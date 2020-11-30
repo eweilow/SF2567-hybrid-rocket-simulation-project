@@ -339,8 +339,10 @@ class EquilibriumTankModel(Model):
       print(" {:45s} = {:8.2f} kW".format("energy leaving oxidizer through top",  -massFlowTop * hTop / 1e3))
       print(" {:45s} = {:8.2f} kW".format("energy leaving oxidizer through bottom", -massFlowOutlet * hOutlet / 1e3))
 
-    
-    return [massFlow, energyFlow, dGasWallTemperature_dt, dLiquidWallTemperature_dt, derived[self.derived_volume] - assumptions.tankVolume.get()]
+    volumeConstraint = 0
+    if options.currentlySolvingWithDAE and options.solveTankVolumeContraintWithDAE:
+      volumeConstraint = derived[self.derived_volume] - assumptions.tankVolume.get()
+    return [massFlow, energyFlow, dGasWallTemperature_dt, dLiquidWallTemperature_dt, volumeConstraint]
 
   tankBurnoutTime = 0
 
@@ -348,9 +350,8 @@ class EquilibriumTankModel(Model):
     totalMass = state[self.states_oxidizerMass]
     totalEnergy = state[self.states_totalEnergy]
 
-    if options.solvingWithDAE:
+    if options.currentlySolvingWithDAE and options.solveTankVolumeContraintWithDAE:
       temperature = state[self.states_temperature]
-
     else:
       def tempFn(temperature):
         return self.derivePropellantVolume(totalMass, totalEnergy, temperature) - assumptions.tankVolume.get()
