@@ -49,12 +49,12 @@ with open('./tmp/simulation.npy', 'rb') as f:
 
 plt.subplot(2,2,1)
 plt.grid()
-downrange = np.linalg.norm([models["flight"]["state"][FlightModel.states_x], models["flight"]["state"][FlightModel.states_y]], axis=0)
-altitude = models["flight"]["state"][FlightModel.states_z]
+downrange = np.linalg.norm([models["flight"]["state"][FlightModel.states_x], models["flight"]["state"][FlightModel.states_y]], axis=0)/1e3
+altitude = models["flight"]["state"][FlightModel.states_z]/1e3
 plt.plot(downrange, altitude)
 plt.gca().set_aspect('equal', adjustable='box')
-plt.xlabel("Downrange distance (m)")
-plt.ylabel("Altitude (m)")
+plt.xlabel("Downrange distance (km)")
+plt.ylabel("Altitude (km)")
 
 plt.subplot(2,2,2)
 plt.grid()
@@ -90,6 +90,7 @@ index = 1
 width = 5
 height = 4
 
+plt.figure(figsize=(20, 10))
 # plt.plot(models["combustion"]["derived"][CombustionModel.derived_ofRatio], models["nozzle"]["derived"][NozzleModel.derived_specificImpulse])
 # plt.xlabel("Oxidizer-Fuel Ratio")
 # plt.ylabel("Specific Impulse [s]")
@@ -104,11 +105,11 @@ def nextSubplot():
   index = (index) % (width * height) + 1
 
 nextSubplot()
-plt.plot(t, models["tank"]["state"][TankModel.states_oxidizerMass] + models["combustion"]["state"][CombustionModel.states_fuelMass], '--')
+# plt.plot(t, models["tank"]["state"][TankModel.states_oxidizerMass] + models["combustion"]["state"][CombustionModel.states_fuelMass], '--')
 plt.plot(t, models["combustion"]["state"][CombustionModel.states_fuelMass], '-')
 plt.plot(t, models["tank"]["derived"][TankModel.derived_liquidMass], '-')
 plt.plot(t, models["tank"]["derived"][TankModel.derived_gasMass], '-')
-plt.legend(("Total", "Fuel", "Oxidizer (Liquid)", "Oxidizer (Gas)"))
+plt.legend(("Fuel", "Oxidizer (Liquid)", "Oxidizer (Gas)"))
 plt.xlabel("Time (s)")
 plt.ylabel("Propellant mass (kg)")
 plt.title("Propellant")
@@ -146,6 +147,7 @@ plt.plot(t, models["combustion"]["derived"][CombustionModel.derived_exhaustPress
 plt.plot(t, models["environment"]["derived"][EnvironmentModel.derived_ambientPressure] / constants.Pressure.bar, '-')
 
 plt.legend(("Tank", "Chamber", "Exhaust", "Ambient"))
+#plt.legend(("Tank", "Chamber"))
 plt.xlabel("Time (s)")
 plt.ylabel("Pressure (bar)")
 plt.title("Pressures")
@@ -280,11 +282,11 @@ plt.xlim(t0, t1)
 
 plt.tight_layout()
 plt.subplots_adjust(
-  left=0.05,
+  left=0.035,
   bottom=0.05,
-  top=1-0.05,
+  top=1-0.02,
   right=1-0.05,
   wspace=0.25,
-  hspace=0.35
+  hspace=0.49
 )
 plt.show()

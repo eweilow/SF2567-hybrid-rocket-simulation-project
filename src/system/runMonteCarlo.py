@@ -120,7 +120,7 @@ def stochastic(fileLock, N, output):
 
 
 if __name__ == '__main__':
-  P = 8
+  P = 6
   N = 5000
 
   fileLock = Lock()

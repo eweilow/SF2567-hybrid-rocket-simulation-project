@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate
 import matplotlib.tri as tri
+import math
 
 from models.tank import TankModel
 from models.injector import InjectorModel
@@ -16,11 +17,11 @@ h = 3
 w = 5
 
 def makehist(data, bins = 20):
-  plt.hist(data, bins, weights=np.ones_like(data)/float(len(data)), cumulative=False)
+  plt.hist(data, bins, weights=np.ones_like(data)/float(len(data)), cumulative=False, rwidth=0.8)
 
 with open('./tmp/montecarlo.npy', 'rb') as f:
   # [N] = np.load(f)
-  N = 20000
+  N = 2500
 
   initialTemperatures = []
   fillingGrades = []
@@ -40,11 +41,13 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   leavingTowerTimes = []
   burnoutTimes = []
   leavingTowerVelocities = []
+  towerAngles = []
 
   times = []
 
   try:
     for i in range(N):
+      print(i)
       [t0, t1, t2] = np.load(f)
       t = np.load(f)
       models = {
@@ -81,65 +84,74 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
 
       _time = np.load(f)
 
-      initialTemperature = models["tank"]["derived"][TankModel.derived_temperature][0] - 273.15
-      fillingGrade = models["tank"]["derived"][TankModel.derived_liquidLevel][0]
-      peakThrust = np.max(models["nozzle"]["derived"][NozzleModel.derived_thrust]) / 1000
-      meanThrust = np.mean(models["nozzle"]["derived"][NozzleModel.derived_thrust]) / 1000
-      peakPressure = np.max(models["tank"]["derived"][TankModel.derived_pressure]) / constants.Pressure.bar
-      meanPressure = np.mean(models["tank"]["derived"][TankModel.derived_pressure]) / constants.Pressure.bar
-      peakCCPressure = np.max(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
-      meanCCPressure = np.mean(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
-      velocity = np.linalg.norm([models["flight"]["state"][FlightModel.states_vx], models["flight"]["state"][FlightModel.states_vy], models["flight"]["state"][FlightModel.states_vz]], axis=0)
-      altitude = models["flight"]["state"][FlightModel.states_z]
-      acceleration = np.linalg.norm([models["flight"]["derived"][FlightModel.derived_ax], models["flight"]["derived"][FlightModel.derived_ay], models["flight"]["derived"][FlightModel.derived_az]], axis=0)
-      totalImpulse = scipy.integrate.trapz(models["nozzle"]["derived"][NozzleModel.derived_thrust], t) / 1000
-      finalPortRadius = models["combustion"]["state"][CombustionModel.states_portRadius][-1] / constants.Lengths.mm
-      leavingTowerIndex = np.where(models["flight"]["derived"][FlightModel.derived_onTower] == 0)
-      leavingTowerIndex = leavingTowerIndex[0][0]
-      leavingTowerTime = t[leavingTowerIndex]
-      leavingTowerVelocity = velocity[leavingTowerIndex]
+      try:
+        initialTemperature = models["tank"]["derived"][TankModel.derived_temperature][0] - 273.15
+        fillingGrade = models["tank"]["derived"][TankModel.derived_liquidLevel][0]
+        peakThrust = np.max(models["nozzle"]["derived"][NozzleModel.derived_thrust]) / 1000
+        meanThrust = np.mean(models["nozzle"]["derived"][NozzleModel.derived_thrust]) / 1000
+        peakPressure = np.max(models["tank"]["derived"][TankModel.derived_pressure]) / constants.Pressure.bar
+        meanPressure = np.mean(models["tank"]["derived"][TankModel.derived_pressure]) / constants.Pressure.bar
+        peakCCPressure = np.max(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
+        meanCCPressure = np.mean(models["combustion"]["state"][CombustionModel.states_pressure]) / constants.Pressure.bar
+        velocity = np.linalg.norm([models["flight"]["state"][FlightModel.states_vx], models["flight"]["state"][FlightModel.states_vy], models["flight"]["state"][FlightModel.states_vz]], axis=0)
+        altitude = models["flight"]["state"][FlightModel.states_z]
+        acceleration = np.linalg.norm([models["flight"]["derived"][FlightModel.derived_ax], models["flight"]["derived"][FlightModel.derived_ay], models["flight"]["derived"][FlightModel.derived_az]], axis=0)
+        totalImpulse = scipy.integrate.trapz(models["nozzle"]["derived"][NozzleModel.derived_thrust], t) / 1000
+        finalPortRadius = models["combustion"]["state"][CombustionModel.states_portRadius][-1] / constants.Lengths.mm
+        leavingTowerIndex = np.where(models["flight"]["derived"][FlightModel.derived_onTower] == 0)
+        leavingTowerIndex = leavingTowerIndex[0][0]
+        leavingTowerTime = t[leavingTowerIndex]
+        leavingTowerVelocity = velocity[leavingTowerIndex]
 
-      outletPhase = np.nan_to_num(models["tank"]["derived"][TankModel.derived_outletPhase])
+        verticalComponent = np.linalg.norm([models["flight"]["state"][FlightModel.states_vx][leavingTowerIndex - 10], models["flight"]["state"][FlightModel.states_vy][leavingTowerIndex - 10]])
+        towerAngle = np.arccos(np.abs(verticalComponent) / velocity[leavingTowerIndex - 10]) * 180 / math.pi
+
+
+        outletPhase = np.nan_to_num(models["tank"]["derived"][TankModel.derived_outletPhase])
+        
+        burnoutIndex = np.where(outletPhase > 0.5)
+        burnoutIndex = burnoutIndex[0][0]
+        burnoutTime = t[burnoutIndex]
+
+        leavingTowerTimes.append(leavingTowerTime)
+        burnoutTimes.append(burnoutTime)
+        leavingTowerVelocities.append(leavingTowerVelocity)
+        initialTemperatures.append(initialTemperature)
+        fillingGrades.append(fillingGrade * 100)
+        peakThrusts.append(peakThrust)
+        meanThrusts.append(meanThrust)
+        peakPressures.append(peakPressure)
+        meanPressures.append(meanPressure)
+        peakCCPressures.append(peakCCPressure)
+        meanCCPressures.append(meanCCPressure)
+        impulses.append(totalImpulse)
+        altitudes.append(np.max(altitude))
+        peakAccelerations.append(np.max(acceleration))
+        meanAccelerations.append(np.mean(acceleration))
+        finalPortRadii.append(finalPortRadius)
+        accelerations.append(np.max(acceleration))
+        velocities.append(np.max(velocity))
+        times.append(_time)
+        towerAngles.append(towerAngle)
+
+        plt.subplot(h,w,5)
+        plt.plot(t, models["nozzle"]["derived"][NozzleModel.derived_thrust] / 1000, '-', linewidth=0.5)
+
+        plt.subplot(h,w,10)
+        plt.plot(t, models["flight"]["state"][FlightModel.states_z], '-', linewidth=0.5)
+
+        plt.subplot(h,w,15)
+        plt.plot(t, models["tank"]["derived"][TankModel.derived_pressure] / constants.Pressure.bar, '-', linewidth=0.5)
+
+        # plt.subplot(h,w,14)
+        # plt.plot(t, models["tank"]["derived"][TankModel.derived_temperature] - 273.15, '-', linewidth=0.5)
       
-      burnoutIndex = np.where(outletPhase > 0.5)
-      burnoutIndex = burnoutIndex[0][0]
-      burnoutTime = t[burnoutIndex]
-
-      leavingTowerTimes.append(leavingTowerTime)
-      burnoutTimes.append(burnoutTime)
-      leavingTowerVelocities.append(leavingTowerVelocity)
-      initialTemperatures.append(initialTemperature)
-      fillingGrades.append(fillingGrade * 100)
-      peakThrusts.append(peakThrust)
-      meanThrusts.append(meanThrust)
-      peakPressures.append(peakPressure)
-      meanPressures.append(meanPressure)
-      peakCCPressures.append(peakCCPressure)
-      meanCCPressures.append(meanCCPressure)
-      impulses.append(totalImpulse)
-      altitudes.append(np.max(altitude))
-      peakAccelerations.append(np.max(acceleration))
-      meanAccelerations.append(np.mean(acceleration))
-      finalPortRadii.append(finalPortRadius)
-      accelerations.append(np.max(acceleration))
-      velocities.append(np.max(velocity))
-      times.append(_time)
-
-      plt.subplot(h,w,5)
-      plt.plot(t, models["nozzle"]["derived"][NozzleModel.derived_thrust] / 1000, '-', linewidth=0.5)
-
-      plt.subplot(h,w,10)
-      plt.plot(t, models["flight"]["state"][FlightModel.states_z], '-', linewidth=0.5)
-
-      plt.subplot(h,w,15)
-      plt.plot(t, models["tank"]["derived"][TankModel.derived_pressure] / constants.Pressure.bar, '-', linewidth=0.5)
-
-      # plt.subplot(h,w,14)
-      # plt.plot(t, models["tank"]["derived"][TankModel.derived_temperature] - 273.15, '-', linewidth=0.5)
-    
-      # plt.subplot(h,w,14)
-      # plt.plot(t, models["combustion"]["state"][CombustionModel.states_portRadius] / constants.Lengths.mm, '-', linewidth=0.5)
-    
+        # plt.subplot(h,w,14)
+        # plt.plot(t, models["combustion"]["state"][CombustionModel.states_portRadius] / constants.Lengths.mm, '-', linewidth=0.5)
+          
+      except Exception as e:
+        print(e)
+      
   except Exception as e:
     print(e)
     
@@ -183,6 +195,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   meanAccelerations = np.array(meanAccelerations)
   finalPortRadii = np.array(finalPortRadii)
   times = np.array(times)
+  towerAngles = np.array(towerAngles)
 
   leavingTowerTimes = np.array(leavingTowerTimes)
   burnoutTimes = np.array(burnoutTimes)
@@ -252,6 +265,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   CS = plt.contour(Xi, Yi, zi, levels=10, linewidths=0.5, colors='k')
   plt.contourf(Xi, Yi, zi, levels=10, cmap="RdBu_r")
   plt.colorbar()
+  plt.xlim(85, 99)
   plt.xlabel("Filling grade (%)")
   plt.ylabel("Temperature (°C)")
 
@@ -275,6 +289,7 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
   CS = plt.contour(Xi, Yi, zi, levels=10, linewidths=0.5, colors='k')
   plt.contourf(Xi, Yi, zi, levels=10, cmap="RdBu_r")
   plt.colorbar()
+  plt.xlim(85, 99)
   plt.xlabel("Filling grade (%)")
   plt.ylabel("Temperature (°C)")
 
@@ -306,35 +321,43 @@ with open('./tmp/montecarlo.npy', 'rb') as f:
 #  plt.ylim(ymin=0)
 
   plt.subplot(h,w,11)
-  plt.title("Acceleration with varying tank filling grade (%)")
-  plt.plot(fillingGrades, peakAccelerations, 'o', markersize=4)
-  plt.plot(fillingGrades, meanAccelerations, 'x', markersize=4)
+  plt.title("Peak altitude with varying tank filling grade (%)")
+  plt.plot(fillingGrades, altitudes, 'o', markersize=4)
   plt.legend(('Peak', 'Mean'))
   plt.xlabel("Filling grade (%)")
-  plt.ylabel("Acceleration (m s-2)")
+  plt.ylabel("Altitude (km)")
   plt.margins(y=0.1)
   plt.ylim(ymin=0)
 
   plt.subplot(h,w,12)
-  plt.title("Acceleration with varying tank filling temperature")
-  plt.plot(initialTemperatures, peakAccelerations, 'o', markersize=4)
-  plt.plot(initialTemperatures, meanAccelerations, 'x', markersize=4)
+  plt.title("Peak altitude with varying tank filling temperature")
+  plt.plot(initialTemperatures, altitudes, 'o', markersize=4)
   plt.legend(('Peak', 'Mean'))
   plt.xlabel("Temperature (°C)")
-  plt.ylabel("Acceleration (m s-2)")
+  plt.ylabel("Altitude (km)")
+  plt.margins(y=0.1)
+  plt.ylim(ymin=0)
+
+  plt.subplot(h,w,13)
+  plt.title("Peak altitude with varying launch tower angle")
+  plt.plot(towerAngles, altitudes, 'o', markersize=4)
+  plt.legend(('Peak', 'Mean'))
+  plt.xlabel("Tower angle (°)")
+  plt.ylabel("Altitude (km)")
   plt.margins(y=0.1)
   plt.ylim(ymin=0)
   
-  plt.subplot(h,w,13)
-  plt.plot(fillingGrades, finalPortRadii, 'o', markersize=4)
-  plt.title("Port radius with varying tank filling grade (%)")
-  plt.xlabel("Filling grade (%)")
-  plt.ylabel("Port radius (mm)")
-  plt.hlines(75 - 2, np.min(fillingGrades), np.max(fillingGrades), 'r', linestyles="dashed", label="Casing")
-  plt.hlines(75 - 2 - 10, np.min(fillingGrades), np.max(fillingGrades), 'g', linestyles="dashdot", label="Margin")
-  plt.legend()
-  plt.margins(y=0.1)
-  plt.ylim(ymin=0)
+  
+  # plt.subplot(h,w,13)
+  # plt.plot(fillingGrades, finalPortRadii, 'o', markersize=4)
+  # plt.title("Port radius with varying tank filling grade (%)")
+  # plt.xlabel("Filling grade (%)")
+  # plt.ylabel("Port radius (mm)")
+  # plt.hlines(75 - 2, np.min(fillingGrades), np.max(fillingGrades), 'r', linestyles="dashed", label="Casing")
+  # plt.hlines(75 - 2 - 10, np.min(fillingGrades), np.max(fillingGrades), 'g', linestyles="dashdot", label="Margin")
+  # plt.legend()
+  # plt.margins(y=0.1)
+  # plt.ylim(ymin=0)
 
   plt.subplot(h,w,14)
   plt.plot(initialTemperatures, finalPortRadii, 'o', markersize=4)

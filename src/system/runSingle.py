@@ -191,13 +191,13 @@ def solver(
   sol.y = sol.y[:,indices]
   return sol.t, sol.y, sol.t[-1], sol.nfev, sol.njev, sol.nlu
 
-def recoverModelState(t, y, models):
+def recoverModelState(t, y, models, canApplySimplified = False):
   applyDerivedVariablesToResult(t, y, models)
   # Recover state for different parts
   for key in models:
     models[key]["state"] = np.dot(models[key]["invMatrix"], y)
 
-    if not models[key]["simplifiedInit"] is None:
+    if canApplySimplified and not models[key]["simplifiedInit"] is None:
       mask, args = models[key]["simplifiedInit"]
       for i in range(len(mask)):
         if mask[i] is None:
@@ -212,12 +212,12 @@ def runSystem():
   models, system, events, initialState, hit_ground_event, hit_apoapsis = makeODE()
   solve1 = time.time()
   t, y, tend, nfev, njev, nlu = solver(system, initialState, 0, maximumSolveTime, 0.01, events, useDae=options.enableDAESolver, rtol=options.combustion_rtol, atol=options.combustion_atol)
-  recoverModelState(t, y, models)
+  recoverModelState(t, y, models, canApplySimplified = False)
 
   solve2 = time.time()
   models2, system2, events2, initialState2, hit_ground_event2, hit_apoapsis2 = makeODE(simplified = True, timeHistory=t, previousModels=models)
   t2, y2, tend2, nfev2, njev2, nlu2 = solver(system2, y[:,-1], tend, tend + 240, 0.25, events=(hit_ground_event2, hit_apoapsis2), useDae=False, rtol=options.flight_rtol, atol=options.flight_atol)
-  recoverModelState(t2, y2, models2)
+  recoverModelState(t2, y2, models2, canApplySimplified = True)
   solve3 = time.time()
 
   firstSolverTime = solve2 - solve1

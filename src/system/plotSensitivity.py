@@ -14,7 +14,7 @@ from models.flight import FlightModel
 import utils.constants as constants
 
 plotBars = True
-plotGrouped = True
+plotGrouped = False
 plotBarPercentage = False
 
 def interpolateToFindPeak(x, y):
@@ -49,6 +49,7 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
   
   try:
     for i in range(N):
+      print(i)
       mode = np.load(f)
       baseline = np.load(f)
       currentValue = np.load(f)
@@ -197,7 +198,10 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
         pass
 
     centerValue = np.mean(centerValues)
-      
+    
+    import itertools
+    lineStyle = itertools.cycle((',-', '+-', '.-', 'o-', '*-', ',--', '+--', '.--', 'o--', '*--')) 
+
     for key in plotLabels:
       # https://stackoverflow.com/a/37415568
       if not plotBars:
@@ -230,11 +234,11 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
         stds.append(std_err)
 
       if not plotBars:
-        if slope == None or (slope > -1 and slope < 1):
+        if slope == None or (slope > -5 and slope < 5):
           plt.plot(x, y, '-', color="#bfbfbf", zorder=4,linewidth=1, label='_nolegend_')
           continue
         # plt.plot(x, intercept + slope * x, '--')
-        plt.plot(x, y, '.-', zorder=5,linewidth=1,markersize=2)
+        plt.plot(x, y, next(lineStyle), zorder=5,linewidth=2,markersize=2)
 
 
       legendUnit = assumptions.availableToRandomize[key]["unit"] if "unit" in assumptions.availableToRandomize[key] else None
@@ -292,7 +296,7 @@ with open('./tmp/sensitivity.npy', 'rb') as f:
           plt.vlines(xvalue, ymin=-0.75, ymax=numIndices - 0.25, color="#e377c2", linestyle="dashed",zorder=5)
           plt.text(xvalue,numIndices,thrsTitle, horizontalalignment="center", verticalalignment="bottom",zorder=5)
 
-      plt.ylim(-1, numIndices + 0.5)
+      plt.ylim(-1, numIndices + 1.5)
     
     barlocation = indices
     if plotGrouped:
